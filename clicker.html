@@ -1,0 +1,2872 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <base href="./assets/">
+    <meta charset="UTF-8">
+    <link rel="icon" type="x-icon" href="main/squirrel.ico">
+    <title>Squirrel Clicker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+
+html, body { 
+            height: 100%; 
+            width: 100%; 
+            margin: 0;
+            padding: 0;
+            background-color: #75ba75; 
+            transition: background-color 1s ease-in-out;
+            user-select: none; 
+            overflow: hidden; 
+            font-family: 'Nunito', sans-serif;
+        }
+
+        img {
+            -webkit-user-drag: none;
+        }
+
+        body.frenzy-active {
+            background-color: #f2ff00;
+        }
+
+        #bg-img {
+            background-image: url('main/squirrel.png');
+            opacity: 0.15;
+            background-repeat: no-repeat;
+            background-size: cover;
+            background-position: center;
+            position: fixed;
+            transition: opacity 1s ease-in-out;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        body.frenzy-active #bg-img {
+            opacity: 0.2;
+        }
+                
+        html > * {
+            font-family: "Nunito" !important; 
+        }
+
+        .shop-btn, .danger-btn, #toggle-sidebar-btn, #toggle-army-btn {
+            font-family: 'Nunito', sans-serif !important;
+        }
+
+        #bg-canvas, #fg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+        }
+
+        #bg-canvas { z-index: 5; }
+        #fg-canvas { z-index: 15; }
+
+.golden-squirrel {
+            position: fixed;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            z-index: 1000;
+
+            animation: 
+                popup-golden 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+                pulse-golden 2s ease-in-out 0.5s infinite;
+            touch-action: manipulation;
+        }
+
+        @keyframes popup-golden {
+            0% { transform: scale(0) rotate(-45deg); opacity: 0; filter: drop-shadow(0 0 0px gold); }
+            100% { transform: scale(1) rotate(-5deg); opacity: 1; filter: drop-shadow(0 0 10px gold); }
+        }
+
+        @keyframes pulse-golden {
+            0% { transform: scale(1) rotate(-5deg); filter: drop-shadow(0 0 10px gold); }
+            50% { transform: scale(1.1) rotate(5deg); filter: drop-shadow(0 0 20px gold); }
+            100% { transform: scale(1) rotate(-5deg); filter: drop-shadow(0 0 10px gold); }
+        }
+
+        #counter {
+            transition: transform 0.1s ease;
+            display: inline-block;
+            margin: 0;
+            color: white;
+            text-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            z-index: 20;
+        }
+
+        .text-bump {
+            transform: scale(1.1) rotate(2deg);
+        }
+
+        #c {
+            width: 230px;
+            height: 230px;
+            cursor: pointer;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            user-select: none;
+            touch-action: none;
+            -webkit-user-drag: none;
+            border-radius: 50%;
+            z-index: 10;
+            position: relative;
+        }
+
+        #c:hover { transform: scale(1.05); }
+        #c:active { transition: transform 0.05s ease; transform: scale(0.95); }
+
+        #sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 250px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 50;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.2);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .shop-header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .shop-header-container h2 {
+            margin: 0;
+            color: white;
+            text-align: left;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-size: 28px;
+        }
+
+        .buy-sell-toggle {
+            display: flex;
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 20px;
+            position: relative;
+            width: 100px;
+            height: 28px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .toggle-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+            z-index: 2;
+            transition: color 0.2s;
+        }
+
+        .toggle-option.active {
+            color: #000;
+        }
+
+        .buy-sell-toggle::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 100%;
+            background: #fdef8a;
+            border-radius: 20px;
+            transition: transform 0.2s cubic-bezier(0.4, 0.0, 0.2, 1);
+            z-index: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        body.sell-mode .buy-sell-toggle::before {
+            transform: translateX(100%);
+        }
+
+        #sidebar.closed { transform: translateX(-100%); }
+        body.sidebar-closed #game-container {
+            margin-left: 0;
+            width: calc(100vw - 350px);
+        }
+
+        #toggle-sidebar-btn {
+            position: fixed;
+            left: 260px;
+            top: 15px;
+            z-index: 60;
+            background: #f1c40f;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-weight: 900;
+            transition: left 0.3s ease, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        #toggle-sidebar-btn:hover { transform: scale(1.1); }
+        body.sidebar-closed #toggle-sidebar-btn { left: 15px; }
+
+        :root {
+            --left-space: 250px;
+            --right-space: 350px;
+        }
+
+        body.sidebar-closed { --left-space: 0px; }
+        body.army-closed { --right-space: 0px; }
+
+        #toggle-army-btn {
+            position: fixed;
+            right: 360px;
+            top: 15px;
+            z-index: 60;
+            background: #f1c40f;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-weight: 900;
+            transition: right 0.3s ease, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        #toggle-army-btn:hover { transform: scale(1.1); }
+        body.army-closed #toggle-army-btn { right: 15px; }
+
+        .rowCanvas {
+            width: 100%;
+            height: 128px;
+            display: block;
+            border-bottom: 6px solid #2e2319;
+            box-sizing: border-box;
+            background-color: #555;
+        }
+        
+        body.is-dragging, body.is-dragging * {
+            cursor: grabbing !important;
+        }
+
+        #building-sidebar {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 350px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.4);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            z-index: 50;
+            box-shadow: -2px 0 10px rgba(0,0,0,0.2);
+            overflow-y: auto;
+            overflow-x: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        #building-sidebar.closed {
+            transform: translateX(100%);
+        }
+
+        #building-sidebar::-webkit-scrollbar, #sidebar::-webkit-scrollbar { width: 12px; }
+        #building-sidebar::-webkit-scrollbar-track, #sidebar::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.5); border-left: 1px solid rgba(0,0,0,0.8); }
+        #building-sidebar::-webkit-scrollbar-thumb, #sidebar::-webkit-scrollbar-thumb { background: linear-gradient(90deg, #555, #777); border-radius: 6px; border: 1px solid #111; }
+
+        .shop-btn {
+            background-color: #f1c40f;
+            color: #333;
+            border: none;
+            border-radius: 15px;
+            padding: 10px 15px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: transform 0.1s, background-color 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        #game-container {
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            position: fixed;
+            left: 50%;
+            top: 20px;
+            transform: translateX(-50%);
+            gap: 20px;
+            pointer-events: none;
+            z-index: 25;
+        }
+
+        #clicker-wrapper { 
+            position: fixed; 
+            left: 50%;
+            top: 50%;
+            width: 230px; 
+            height: 230px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            margin: 0; 
+            z-index: 10; 
+            pointer-events: none; 
+            transform: translate(-50%, -50%); 
+        }
+
+        .shop-btn:hover:not(:disabled) { transform: scale(1.05); background-color: #f39c12; }
+        .shop-btn:active:not(:disabled) { transform: scale(0.95); }
+        .shop-btn:disabled { background-color: #95a5a6; color: #ecf0f1; cursor: not-allowed; box-shadow: none; }
+
+        @keyframes icon-sin { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
+        .btn-icon { width: 24px; height: 24px; animation: icon-sin 1.5s ease-in-out infinite; pointer-events: none; }
+
+        #buffs-container { position: fixed; top: 70px; right: 370px; display: flex; flex-direction: column; gap: 15px; z-index: 2000; transition: right 0.3s ease; }
+        body.army-closed #buffs-container { right: 20px; }
+
+        .buff-box { width: 60px; height: 60px; background-color: #f1c40f; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.2); position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .buff-icon-img { width: 36px; height: 36px; z-index: 1; pointer-events: none; }
+        .buff-overlay { position: absolute; top: 0; left: 0; width: 100%; background: rgba(0, 0, 0, 0.55); z-index: 2; pointer-events: none; }
+
+        #toast-container { position: fixed; bottom: 20px; right: 370px; display: flex; flex-direction: column; gap: 10px; z-index: 3000; pointer-events: none; transition: right 0.3s ease; }
+        body.army-closed #toast-container { right: 20px; }
+
+        .toast { background: rgba(0, 0, 0, 0.8); color: #f1c40f; padding: 15px 25px; border-radius: 10px; border-left: 5px solid #f1c40f; box-shadow: 0 4px 6px rgba(0,0,0,0.3); font-family: 'Nunito', sans-serif; animation: slideIn 0.5s ease-out, fadeOut 0.5s ease-in 4.5s forwards; max-width: 280px; word-wrap: break-word; }
+
+        .toast h4 { margin: 0 0 5px 0; font-size: 18px; }
+        .toast p { margin: 0; font-size: 14px; color: white; }
+
+        @keyframes slideIn { from { transform: translateX(120%); } to { transform: translateX(0); } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+        #achievements-panel, #settings-panel, #ascension-panel, #tutorial-panel, #upgrade-panel { 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); 
+            background: #fff; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); 
+            z-index: 4000; max-height: 70vh; overflow-y: auto; transition: transform 0.1s ease-out; 
+        }
+        
+        #achievements-panel, #settings-panel, #ascension-panel { width: 400px; }
+
+        #tutorial-panel { width: 500px; padding: 0; background: #f0f0f0; border: 4px solid #b3b3b3; overflow: hidden; display: flex; flex-direction: column; }
+        #upgrade-panel { width: 300px; text-align: center; overflow-x: hidden; }
+
+        #achievements-panel.open, #settings-panel.open, #ascension-panel.open, #tutorial-panel.open, #upgrade-panel.open { 
+            transform: translate(-50%, -50%) scale(1); 
+        }
+
+        .ach-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 15px; }
+        .ach-header h2 { margin: 0; color: #333; }
+        .close-btn { cursor: pointer; font-weight: bold; font-size: 20px; color: #e74c3c; }
+
+        .ach-item { 
+            padding: 10px; border-bottom: 1px solid #eee; 
+            display: flex; flex-direction: row; align-items: center; gap: 15px; 
+            opacity: 0.5; filter: grayscale(1); 
+        }
+        .ach-item.unlocked { opacity: 1; filter: grayscale(0); }
+        .ach-icon { width: 48px; height: 48px; object-fit: contain; flex-shrink: 0; }
+        .ach-text-content { display: flex; flex-direction: column; }
+        .ach-item h4 { margin: 0 0 5px 0; color: #2980b9; }
+        .ach-item.unlocked h4 { color: #f39c12; }
+        .ach-item p { margin: 0; font-size: 14px; color: #666; }
+
+        .danger-btn { background-color: #e74c3c; color: white; border: none; border-radius: 10px; padding: 15px; font-size: 16px; font-weight: 800; cursor: pointer; width: 100%; transition: transform 0.1s, background-color 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        .danger-btn:hover { background-color: #c0392b; transform: scale(1.02); }
+        .danger-btn:active { transform: scale(0.98); }
+
+        #modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); z-index: 3500; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; }
+        #modal-overlay.active { opacity: 1; pointer-events: auto; }
+
+        #zoom-container { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.6); color: white; padding: 10px 20px; border-radius: 20px; display: flex; align-items: center; gap: 10px; z-index: 60; }
+        #c { pointer-events: auto; }
+
+        #reset-zoom-btn { background: none; border: none; color: white; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; transition: transform 0.3s ease; outline: none; }        #reset-zoom-btn:hover { transform: rotate(-180deg) scale(1.2); }
+        #reset-zoom-btn:active { transform: rotate(-180deg) scale(0.9); }
+
+        #fps-counter { 
+            position: fixed; 
+            bottom: 20px; 
+            left: 270px; 
+            background: rgba(0, 0, 0, 0.6); 
+            color: white; 
+            padding: 10px 20px; 
+            border-radius: 20px; 
+            align-items: center; 
+            gap: 5px; 
+            z-index: 60; 
+            font-family: 'Nunito', sans-serif;
+            font-weight: 900;
+            transition: left 0.3s ease;
+            display: none;
+        }
+        body.sidebar-closed #fps-counter { left: 20px; }
+
+        #tutorial-panel.open, #upgrade-panel.open { transform: translate(-50%, -50%) scale(1); }
+
+        @media (max-width: 900px) {
+            #toggle-army-btn {
+                top: 55px;
+            }
+        }
+        #tut-level-img {
+            transition: transform 0.25s cubic-bezier(.29,1.74,.46,.66);
+        }
+
+        #loading-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: #75ba75;
+            z-index: 9999999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease;
+        }
+        #loading-content {
+            text-align: center;
+        }
+        #loading-bar-container {
+            width: 300px; height: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            margin: 0 auto;
+            overflow: hidden;
+            border: 2px solid #fff;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+        }
+        #loading-bar {
+            width: 0%; height: 100%;
+            background: #f1c40f;
+            transition: width 0.1s ease;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading-screen">
+        <div id="loading-content">
+            <h1 style="color: white; font-family: 'Nunito', sans-serif; text-shadow: 0 4px 6px rgba(0,0,0,0.5);">Loading Squirrel Clicker...</h1>
+            <div id="loading-bar-container">
+                <div id="loading-bar"></div>
+            </div>
+<p id="loading-text" style="color: white; font-weight: bold; margin-top: 10px;">0%</p>
+            <div id="loading-errors" style="color: #ff4d4d; font-size: 13px; font-weight: 900; margin-top: 5px; max-height: 80px; overflow-y: auto; text-shadow: 0 1px 2px rgba(0,0,0,0.8);"></div>
+            <button id="dismiss-loading-btn" class="shop-btn" style="display: none; margin: 15px auto 0 auto; background-color: #e74c3c; color: white;">I understand</button>
+        </div>
+    </div>
+
+    <button id="toggle-sidebar-btn" onclick="toggleSidebar()">< Close Shop</button>
+    <button id="toggle-army-btn" onclick="toggleArmy()">Close Army ></button>
+
+    <div id="bg-img"></div>
+
+    <canvas id="bg-canvas"></canvas>
+    <canvas id="fg-canvas"></canvas>
+    
+    <div id="game-container">
+        <h1 id="counter">0 Tokens</h1>
+        <div id="tps-counter" style="color: rgba(255,255,255,0.8); font-size: 18px; margin-top: -15px; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">0 per second</div>
+        <h2 id="acorn-counter" style="display: none; color: gold; margin-top: -10px; font-size: 22px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">0 Golden Acorns (+0% boost)</h2>        
+    </div>
+    
+    <div id="clicker-wrapper">
+        <img id="c" src="main/squirrel.png" alt="click" draggable="false" ondragstart="return false;">
+    </div>
+    
+    <div id="buffs-container"></div>
+    <div id="toast-container"></div>
+    <div id="modal-overlay" onclick="closeModals()"></div>
+    
+<div id="tutorial-panel">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 20px; border-bottom: 2px solid #ccc; background: white;">
+            <span class="close-btn" style="font-size: 28px;" onclick="closeModals()">❌</span>
+            <h2 style="margin: 0; font-size: 32px; color: #000; flex: 1; text-align: center;">Congrats!</h2>
+            <span style="width: 28px;"></span>
+        </div>
+        <div style="display: flex; padding: 20px; gap: 20px; background: #e8e8e8;">
+<div id="tut-desc-text" style="flex: 1; font-size: 16px; color: #000; line-height: 1.4;">
+            You have bought a Chronister, which supports <b>Levels</b>! You can upgrade your soldiers stats based on its level!<br><br>Upgrade in the <b>[Armies]</b> tab!
+        </div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; background: white; padding: 20px; border-radius: 8px; border: 2px dashed #ccc; min-height: 220px; gap: 30px;">
+                <h3 id="tut-level-text" style="margin: 0; color: #333; font-size: 24px; z-index: 10; position: relative;">Level 1</h3>
+                <div style="height: 100px; display: flex; align-items: center; justify-content: center;">
+                    <img id="tut-level-img" src="ent/chron_1.png" style="width: 80px; height: 80px; image-rendering: pixelated;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+<div id="upgrade-panel">
+        <h2 id="upg-title" style="margin-top: 0;">Chronister Level 1</h2>
+        <img id="upg-chron-img" src="ent/chron_1.png" style="width: 80px; height: 80px; margin-bottom: 10px; transition: transform 0.25s cubic-bezier(.29,1.74,.46,.66);">
+        <h3 style="margin: 5px 0; color: #8e44ad;">Current Level: <span id="upg-current-lvl">1</span></h3>
+        <p id="upg-prod-text" style="margin: 5px 0; color: #666;">Production: <b style="color: #27ae60;">5 TPS</b></p>
+        <button id="confirm-upgrade-btn" class="shop-btn" style="width: 100%; margin-top: 15px; background-color: #2ecc71; color: white;">
+            Upgrade (Cost: 500)
+        </button>
+        <button class="shop-btn" style="width: 100%; margin-top: 10px; background-color: #e74c3c; color: white;" onclick="closeModals()">Cancel</button>
+    </div>
+
+    <div id="achievements-panel">
+        <div class="ach-header">
+            <img src="icon/troph_icon.png" style="height: 40px;width: 50px;" draggable="false"> 
+            <h2>Achievements</h2>
+            <span class="close-btn" onclick="closeModals()">✖</span>
+        </div>
+        <div id="achievements-list"></div>
+    </div>
+
+    <div id="settings-panel">
+        <div class="ach-header">
+            <img src="icon/sett_icon.png" style="height:40px; width: 40px;" draggable="false"> 
+            <h2>Settings</h2>
+            <span class="close-btn" onclick="closeModals()">✖</span>
+        </div>
+        <div style="padding: 10px 0; border-top: 1px solid #eee; margin-top: 10px;">
+            <h3 style="margin-bottom: 5px;">Visual Settings</h3>
+            
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="checkbox" id="show-fps-setting" style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="show-fps-setting" style="font-weight: bold; color: #444; cursor: pointer;">Show FPS Counter</label>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="checkbox" id="use-custom-cursor" checked style="width: 18px; height: 18px; cursor: pointer;">
+                <label for="use-custom-cursor" style="font-weight: bold; color: #444; cursor: pointer;">Enable Custom Cursor</label>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <label for="cursor-size" style="font-weight: bold; color: #444;">Size:</label>
+                <input type="range" id="cursor-size" min="20" max="80" step="2" value="32" style="flex: 1;">
+                <span id="cursor-size-val" style="min-width: 45px; font-weight: 900; color: #24b813;">32px</span>
+            </div>
+        </div>
+
+        <div style="padding: 10px 0;">
+            <button class="danger-btn" onclick="resetProgress()">⚠️ Reset Total Progress</button>
+            <p style="margin-bottom: 0; color: #666;">Warning: This will wipe all your current progress permanently.</p>
+        </div>
+    </div>
+    
+    <div id="debug-panel" style="display:none;">
+        <div class="ach-header" style="display:none;">
+            <h2>🛠️ Debug Menu</h2>
+            <span class="close-btn" onclick="closeModals()">✖</span>
+        </div>
+        <div style="display: none; flex-direction: column; gap: 15px; padding: 10px 0;">
+            <label class="debug-label">Tokens: <input type="number" id="debug-tokens" class="debug-input" min="0"></label>
+            <label class="debug-label">Golden Acorns: <input type="number" id="debug-acorns" class="debug-input" min="0"></label>
+            <label class="debug-label">Johns: <input type="number" id="debug-johns" class="debug-input" min="0"></label>
+            <label class="debug-label">Chronisters: <input type="number" id="debug-chrons" class="debug-input" min="0"></label>
+            <label class="debug-label">Chumtoads: <input type="number" id="debug-chums" class="debug-input" min="0"></label>
+            <label class="debug-label">Free Shop: <input type="checkbox" id="debug-free-shop" style="width: 18px; height: 18px; cursor: pointer;"></label>
+            <label class="debug-label">Free Cam (Scroll/Drag): <input type="checkbox" id="debug-free-cam" style="width: 18px; height: 18px; cursor: pointer;"></label>
+            <label class="debug-label">Show Culling Box: <input type="checkbox" id="debug-cull-box" style="width: 18px; height: 18px; cursor: pointer;"></label>
+            <label class="debug-label">Show Entity AABBs: <input type="checkbox" id="debug-aabb" style="width: 18px; height: 18px; cursor: pointer;"></label>
+            <label class="debug-label" style="padding-left: 20px; font-size: 14px; opacity: 0.8;">└ Render Culled (Ghost): <input type="checkbox" id="debug-aabb-global" style="width: 16px; height: 16px; cursor: pointer;"></label>
+            <label class="debug-label">Show LOD FPS: <input type="checkbox" id="debug-lod-text" style="width: 18px; height: 18px; cursor: pointer;"></label>
+            <button class="shop-btn" style="background-color: #e3de3a; color: white;" onclick="spawnGoldenSquirrel();">Summon Golden Squirrel</button>
+            <button class="shop-btn" style="background-color: #27ae60; color: white; margin-top: 10px;" onclick="applyDebug()">Apply Cheats</button>      
+        </div>
+    </div>
+
+    <div id="ascension-panel">
+        <div class="ach-header">
+            <h2>✨ Ascension Shop</h2>
+            <span class="close-btn" onclick="closeModals()">✖</span>
+        </div>
+        <div style="padding: 10px 0;">
+            <h3 style="margin-top: 0;">Unspent Acorns: <span id="unspent-display">0</span></h3>
+            <button id="buy-offline-btn" class="shop-btn" style="width: 100%; display: flex; justify-content: space-between;">
+                <span>Offline Earnings (+5%)</span>
+                <span id="offline-cost-txt">Cost: 1 Acorn</span>
+            </button>
+            <p style="font-size: 14px; color: #666; margin-bottom: 0;">Current Offline Efficiency: <b id="offline-eff-txt">0%</b></p>
+        </div>
+    </div>
+
+    <div id="fps-counter">FPS: <span id="fps-value" style="color: #2ecc71;">60</span></div>
+
+    <div id="zoom-container">
+        <button id="reset-zoom-btn" title="Reset Zoom">🔄</button>
+        <label for="canvas-zoom" style="font-weight: bold;">Zoom:</label>
+        <input type="range" id="canvas-zoom" min="0.01" max="5" step="0.01" value="1">
+    </div>
+
+    <div id="sidebar">
+        <div class="shop-header-container">
+            <h2>Shop</h2>
+            <div class="buy-sell-toggle">
+                <div id="mode-buy" class="toggle-option active" onclick="setShopMode('buy')">Buy</div>
+                <div id="mode-sell" class="toggle-option" onclick="setShopMode('sell')">Sell</div>
+            </div>
+        </div>        
+        <button id="ascend-btn" class="shop-btn" style="background-color: #8e44ad; color: white; display: none; flex-direction: column; padding: 15px 10px;">
+            <div style="font-size: 20px;">✨ Ascend ✨</div>
+            <span id="ascend-text" style="font-size: 14px; margin-top: 5px;">+0 Golden Acorns</span>
+        </button>
+<button id="buy-chron-btn" class="shop-btn">
+            <img src="ent/chron.png" class="btn-icon" draggable="false"> 
+            <span id="chron-owned" style="color: #2c3e50; font-weight: 900;">[0]</span>
+            <span id="buy-chron-text">Buy Chronister (10)</span>
+        </button>
+<button id="buy-chum-btn" class="shop-btn">
+            <img src="ent/chum_1.png" class="btn-icon" draggable="false" onerror="this.src='main/unkown.png'">
+            <span id="chum-owned" style="color: #2c3e50; font-weight: 900;">[0]</span>
+            <span id="buy-chum-text">Buy Chumtoad (100)</span>
+        </button>
+        <button id="buy-john-btn" class="shop-btn">
+            <img src="ent/john.png" class="btn-icon" draggable="false"> 
+            <span id="john-owned" style="color: #2c3e50; font-weight: 900;">[0]</span>
+            <span id="buy-john-text">Buy John (1000)</span>
+        </button>
+        <button id="buy-x2-btn" class="shop-btn">
+            <img src="icon/x2_icon.png" class="btn-icon" draggable="false"> 
+            <span id="x2-text">x2 Boost (60s)<br>Cost: 500</span>
+        </button>
+        <button id="buy-x5-btn" class="shop-btn">
+            <img src="icon/x5_icon.png" class="btn-icon" draggable="false"> 
+            <span id="x5-text">x5 Boost (30s)<br>Cost: 5000</span>
+        </button>
+
+        <button onclick="openModal('ascension-panel')" class="shop-btn" style="background-color: #8e44ad; color: white;" id="ascension-shop-btn">
+            <span>✨ Ascension Shop</span>
+        </button>
+
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 15px; padding-top: 15px;">
+            <button onclick="openModal('achievements-panel')" class="shop-btn" style="background-color: #3498db; color: white;">
+                <img src="icon/troph_icon.png" class="btn-icon" draggable="false"> 
+                <span>View Achievements</span>
+            </button>
+            <button onclick="openModal('settings-panel')" class="shop-btn" style="background-color: #95a5a6; color: white;">
+                <img src="icon/sett_icon.png" class="btn-icon" draggable="false"> 
+                <span>Settings</span>
+            </button>
+            <span style="display:flex;align-content: center;text-align: center;color:white;">Version: v1.0.2</span>
+        </div>
+    </div>
+
+    <div id="building-sidebar">
+        <div id="no-soldiers-msg" style="display: flex; justify-content: center; color: white; padding-top: 20px;">
+            <strong>You have no soldiers!</strong>
+        </div>
+    </div>
+<script>
+    window.addEventListener('error', function(e) {
+        if (e.target && e.target.tagName) {
+            const tag = e.target.tagName.toLowerCase();
+            const brokenSrc = e.target.getAttribute('src') || e.target.src;
+            
+            if (tag === 'img') {
+                if (!e.target.src.endsWith('main/unkown.png')) {
+                    e.target.title = `Failed Loading: '${brokenSrc}'`;
+                    e.target.src = 'main/unkown.png';
+                }
+            } else if (tag === 'audio' || tag === 'video') {
+                e.target.title = `Failed Loading Media: '${brokenSrc}'`;
+                console.warn(`Failed loading media: ${brokenSrc}`);
+            }
+        }
+    }, true);
+
+    const SVG_DATA = {
+        default: `<svg xmlns="http://www.w3.org/2000/svg" width="60" height="94" viewBox="0 0 60.4 93.9"><g transform="translate(-238.5,-177.68)"><path d="M239.69,181.12l28.27,26.92l27.07,27.12l-25.3,1.25l5.99,13.1c3.38,7.21,6.07,13.48,6.07,13.94c-0.07,0.84-10.45,5.6-11.91,5.49c-0.38-0.01-3.53-6.14-6.84-13.58c-3.38-7.44-6.3-13.57-6.53-13.57c-0.23,0-3.99,3.41-8.3,7.58l-7.91,7.66v-38.66z" fill="#24b813"/><path d="M295.34,235.14l-26.3,0.97l13.24,28.31l-11.69,5.23l-13.79-28.52l-16.8,15.82v-75.73z" fill="none" stroke="#085300" stroke-width="3" stroke-linecap="round"/></g></svg>`,
+        pointer: `<svg xmlns="http://www.w3.org/2000/svg" width="76" height="96" viewBox="0 0 76.3 96.7"><g transform="translate(-209.2,-178.2)"><path d="M241.1,179.2c1.4,0,3.1,0.7,4.2,1.9c1.8,1.7,1.9,2.1,1.9,13.5v11.6l1.9-1.8c1.1-1.2,2.7-1.9,4.2-1.9c2.8,0,6.2,2.9,6.2,5.3c0,1.4,0.1,1.4,1.9-0.3c1.1-1.2,2.7-1.9,4.2-1.9c2.8,0,6.2,2.9,6.2,5.3c0,1.4,0.1,1.4,1.9-0.3c2.4-2.5,6-2.5,8.5,0l1.9,1.8v20.8c0,22.4-0.3,24-4.2,29.7c-4.1,5.9-14,10.8-21.8,10.8c-12.7,0-24.5-7.1-34.1-20.6c-2.1-3-6.2-8.4-9.1-12c-4.1-5.1-5.2-7.1-5.2-9.1c0-3.2,2.9-6.3,6-6.3c2.7,0,8.3,2.8,13.9,7c2.2,1.6,4.2,3,4.5,3c0.2,0,0.3-11.9,0.3-26.4v-26.5l1.9-1.8c1.1-1.2,2.8-1.9,4.2-1.9z" fill="#0d4d08"/><path d="M235.9,184.4c0,0,0.8-4.7,5.2-4.4c4.2,0.3,5.4,4.4,5.4,4.4l0.4,39.3c0,0-0.4-10.3,1.4-16.3c1-3.4,4.4-4,5.1-4c4.5,0.1,6,5,6.3,10c0.1,2.1,0,4.8-0.1,6.6c-0.1,1.7-0.2,2.6-0.3,3.2c0,0,0.2-1.7,0.3-4.1c0.09-3-0.4-7,0.9-9.7c0.8-1.7,3-3.2,5.1-3.2c6.2,0.1,6.4,8.9,6.2,14c-0.1,2.1,0,3.8,0,3.8c0,0-0.9-14.5,5.8-14.7c4.1-0.1,5.5,4,5.5,4c0,0,0.2,9.9,0.3,15.5c0,5.5-0.1,18.1-0.1,18.1c0,0-0.3,8.2-1.4,10.8c-1.4,3.4-4.7,7.8-7.4,9.5c-10.8,7-18.1,5.4-18.1,5.4c0,0-5.2-0.07-9.9-1.8c-5-1.9-9.8-5.7-13.2-8.7c-8.2-7.1-22.5-28.9-22.5-28.9c0,0-0.2-1.5,0-2.5c0.1-0.4,0.7-1.9,1.6-2.8c0.8-0.8,1.9-1.3,2.3-1.4c1.1-0.2,3.6,0,3.6,0c0,0,4.7,2.5,7.4,4.2c3,1.9,9.7,6.9,9.7,6.9z" fill="#24b813" stroke="#085300" stroke-width="3.5" stroke-linecap="round"/></g></svg>`
+    };
+
+    const cursorImages = { default: new Image(), pointer: new Image() };
+    let cursorsLoaded = 0;
+
+    const initCursorImage = (type) => {
+        cursorImages[type].src = 'data:image/svg+xml;base64,' + btoa(SVG_DATA[type]);
+        cursorImages[type].onload = () => {
+            cursorsLoaded++;
+        };
+    };
+    initCursorImage('default');
+    initCursorImage('pointer');
+
+    let cursorSize = 32;
+    let useCustomCursor = false;
+
+    function updateCursorSize(newSize) {
+        cursorSize = Math.min(Math.max(parseInt(newSize), 20), 80);
+        
+        const sizeValEl = document.getElementById('cursor-size-val');
+        if (sizeValEl) sizeValEl.innerText = cursorSize + 'px';
+
+        let styleEl = document.getElementById('dynamic-cursor-css');
+        if (!styleEl) {
+            styleEl = document.createElement('style');
+            styleEl.id = 'dynamic-cursor-css';
+            document.head.appendChild(styleEl);
+        }
+
+        let cursorDiv = document.getElementById('custom-cursor-div');
+        if (!cursorDiv) {
+            cursorDiv = document.createElement('div');
+            cursorDiv.id = 'custom-cursor-div';
+            cursorDiv.style.position = 'fixed';
+            cursorDiv.style.top = '0';
+            cursorDiv.style.left = '0';
+            cursorDiv.style.pointerEvents = 'none';
+            cursorDiv.style.zIndex = '999999';
+            cursorDiv.style.backgroundRepeat = 'no-repeat';
+            cursorDiv.style.backgroundSize = 'contain';
+            cursorDiv.style.transition = 'opacity 0.1s ease';
+            cursorDiv.style.willChange = 'transform';
+            cursorDiv.style.imageRendering = 'pixelated';
+            document.body.appendChild(cursorDiv);
+        }
+
+        if (!useCustomCursor) {
+            styleEl.innerHTML = '';
+            cursorDiv.style.display = 'none';
+            localStorage.setItem('sq_cur_size', cursorSize);
+            return;
+        }
+        
+        if (cursorsLoaded < 2) return;
+
+        styleEl.innerHTML = `*, html, body { cursor: none !important; }`;
+
+        cursorDiv.style.display = 'block';
+        cursorDiv.style.width = cursorSize + 'px';
+        cursorDiv.style.height = Math.round(cursorSize * 1.56) + 'px';
+        
+        localStorage.setItem('sq_cur_size', cursorSize);
+    }
+
+    document.getElementById('cursor-size').addEventListener('input', (e) => {
+        updateCursorSize(e.target.value);
+    });
+
+    document.getElementById('use-custom-cursor').addEventListener('change', (e) => {
+        useCustomCursor = e.target.checked;
+        localStorage.setItem('sq_use_custom_cur', useCustomCursor);
+        document.getElementById('cursor-size').disabled = !useCustomCursor;
+        updateCursorSize(cursorSize); 
+    });
+
+    let targetZoom = 1;
+    let smoothZoom = 1;
+    const zoomSpeed = 0.1;
+
+    let freeCamEnabled = false;
+    let showCullBox = false;
+    let showLodText = false;
+    let showEntityAABB = false;
+    let showGlobalAABB = false;
+    let camPanX = 0;
+    let camPanY = 0;
+    let targetPanX = 0;
+    let targetPanY = 0;
+    let isDraggingCam = false;
+    let dragCamStartX = 0;
+    let dragCamStartY = 0;
+
+    let cullLockX = 0;
+    let cullLockY = 0;
+    let cullLockZoom = 1;
+
+    let totalTokensEver = 0;
+    let goldenAcorns = 0;
+    let unspentAcorns = 0;
+    let offlineUpgradeLevel = 0;
+    let count = 0;
+
+    let buildingOrder = [];
+
+    const achievementsList = [
+        { id: 'ach1', req: 1, icon: 'beginnings.png', title: 'The Beginnings', desc: 'Get your very first token.' },
+        { id: 'ach2', req: 100, icon: 'hundred.png', title: 'Token Novice', desc: 'Collect 100 total tokens.' },
+        { id: 'ach3', req: 1000, icon: 'thousand.png', title: 'Token Scout', desc: 'Collect 1,000 total tokens.' },
+        { id: 'ach4', req: 10000, icon: 'ten_thousand.png', title: 'Toekn Enthusiast', desc: 'Collect 10,000 total tokens.' },
+        { id: 'ach5', req: 100000, icon: 'hundred_thousand.png', title: 'A Token Creator', desc: 'Collect 100,000 total tokens.' },
+        { id: 'ach6', req: 1000000, icon: 'million.png', title: 'A Millionaire', desc: 'Collect 1,000,000 total tokens.' },
+        { id: 'ach_chron_rev', reqChron: Math.floor((2 * Math.PI * 240) / 85), icon: 'chron_circle.png', title: 'A little better..', desc: 'Complete the first circle of Chronisters.' },
+        { id: 'ach_chum_rev', reqChum: Math.floor((2 * Math.PI * 240) / 95), icon: 'chum_circle.png', title: 'Toad-ally nice', desc: 'Complete the first circle of Chumtoads.' },
+        { id: 'ach_john_rev', reqJohn: 1, icon: 'john.png', title: 'I think we\'re getting somewhere!..', desc: 'Recruit your very first John.' },
+        { id: 'ach_cps', icon: 'cps_fast.png', title: 'Hyperactive', desc: 'Click the squirrel 12 times in a single second!' }
+    ];
+    let freeShopEnabled = false;
+    let unlockedAchievements = [];
+
+    let shopMode = 'buy';
+
+    function setShopMode(mode) {
+        shopMode = mode;
+        if (mode === 'sell') {
+            document.body.classList.add('sell-mode');
+            document.getElementById('mode-buy').classList.remove('active');
+            document.getElementById('mode-sell').classList.add('active');
+        } else {
+            document.body.classList.remove('sell-mode');
+            document.getElementById('mode-sell').classList.remove('active');
+            document.getElementById('mode-buy').classList.add('active');
+        }
+        updateDisplay(true);
+    }
+
+    let chronCount = 0;
+    let chumCount = 0;
+    let johnCount = 0;
+    
+    let displayCount = -1; 
+    let chronCost = 10;
+    let chumCost = 100;
+    let johnCost = 1000;
+    
+    let currentMultiplier = 1;
+    let frenzyMultiplier = 1;
+    let activeBooster = null;
+    let activeFrenzy = null;
+
+    let chronLevels = [];
+    let chumLevels = [];
+    
+    let hasSeenLevelTut = false;
+    let tutAnimInterval = null;
+    let activeUpgradeIndex = -1;
+
+    const MAX_LEVELS = {
+        'john': 1,
+        'chron': 3,
+        'chum': 3
+    };
+
+    const chumImgCache = {};
+    function getChumImg(lvl) {
+        if (!chumImgCache[lvl]) {
+            chumImgCache[lvl] = new Image();
+            chumImgCache[lvl].src = `ent/chum_${lvl}.png`; 
+            chumImgCache[lvl].onerror = function() { this.src = 'main/unkown.png'; };        }
+        return chumImgCache[lvl];
+    }
+
+    let showFpsCounter = true;
+    let fpsFrames = 0;
+    let fpsLastTime = performance.now();
+    let currentFps = 60;
+
+let targetAnimSpeed = 1.0;
+    let currentAnimSpeed = 1.0;
+    let lastAnimTime = performance.now();
+    let gameTime = 0;
+    
+    let isFocused = document.hasFocus();
+    let lastRenderTime = performance.now();
+    window.addEventListener('focus', () => isFocused = true);
+    window.addEventListener('blur', () => isFocused = false);
+
+    document.getElementById('show-fps-setting').addEventListener('change', (e) => {
+        showFpsCounter = e.target.checked;
+        document.getElementById('fps-counter').style.display = showFpsCounter ? 'flex' : 'none';
+        localStorage.setItem('sq_show_fps', showFpsCounter);
+    });
+
+    const chronImgCache = {};
+    function getChronImg(lvl) {
+        if (!chronImgCache[lvl]) {
+            chronImgCache[lvl] = new Image();
+            chronImgCache[lvl].src = `ent/chron_${lvl}.png`; 
+            chronImgCache[lvl].onerror = function() { this.src = 'main/unkown.png'; };        }
+        return chronImgCache[lvl];
+    }
+
+    function getTotalPassiveTPS() {
+        let chronTPS = chronLevels.reduce((sum, lvl) => sum + (lvl * 1), 0);
+        let chumTPS = chumLevels.reduce((sum, lvl) => sum + (lvl * 5), 0);
+        let johnTPS = johnCount * 25;
+        return chronTPS + chumTPS + johnTPS;
+    }
+    
+    const counterDisplay = document.getElementById('counter');
+    const clickerImage = document.getElementById('c');
+    const buyJohnBtn = document.getElementById('buy-john-btn');
+    const buyJohnText = document.getElementById('buy-john-text');
+    const buyChronBtn = document.getElementById('buy-chron-btn');
+    const buyChronText = document.getElementById('buy-chron-text');
+    const buyX2Btn = document.getElementById('buy-x2-btn');
+    const buyX5Btn = document.getElementById('buy-x5-btn');
+    const bgCanvas = document.getElementById('bg-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    const fgCanvas = document.getElementById('fg-canvas');
+    const fgCtx = fgCanvas.getContext('2d');
+
+let particles = [];
+    let popups = [];
+    let bgTokens = [];
+    let bgTokenAccumulator = 0;
+    let recentClicks = [];
+    let cpsAchieved = false;
+    const imgJohn = new Image(); imgJohn.src = 'ent/john.png';
+    const imgChron = new Image(); imgChron.src = 'ent/chron.png';
+    const imgToken = new Image(); imgToken.src = 'main/temp_token.png';
+
+    document.getElementById('canvas-zoom').addEventListener('input', (e) => { targetZoom = parseFloat(e.target.value); });
+
+    
+    function formatNumberWords(num) {
+        if (num < 1000000) return Math.floor(num).toLocaleString();
+        const suffixes = [
+            { value: 1e33, symbol: " decillion" },
+            { value: 1e30, symbol: " nonillion" },
+            { value: 1e27, symbol: " octillion" },
+            { value: 1e24, symbol: " septillion" },
+            { value: 1e21, symbol: " sextillion" },
+            { value: 1e18, symbol: " quintillion" },
+            { value: 1e15, symbol: " quadrillion" },
+            { value: 1e12, symbol: " trillion" },
+            { value: 1e9, symbol: " billion" },
+            { value: 1e6, symbol: " million" }
+        ];
+        for (let i = 0; i < suffixes.length; i++) {
+            if (num >= suffixes[i].value) {
+                return (num / suffixes[i].value).toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 }) + suffixes[i].symbol;
+            }
+        }
+        return Math.floor(num).toLocaleString();
+    }
+
+    function getPrestigeMultiplier() { return 1 + (goldenAcorns * 0.01); }
+
+    function playClickSound() { return; }
+
+    function resizeCanvas() {
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+        fgCanvas.width = window.innerWidth;
+        fgCanvas.height = window.innerHeight;
+
+        if (window.innerWidth <= 900) {
+            const shopOpen = !document.body.classList.contains('sidebar-closed');
+            const armyOpen = !document.body.classList.contains('army-closed');
+            
+            if (shopOpen && armyOpen) {
+                document.getElementById('building-sidebar').classList.add('closed');
+                document.body.classList.add('army-closed');
+                document.getElementById('toggle-army-btn').innerText = "< Open Army";
+            }
+        }
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function updateDisplay(forceUpdate = false) {
+        const currentFloor = Math.floor(count);
+        const totalPrestigePossible = Math.floor(Math.cbrt(totalTokensEver / 1000000000000));
+        const pendingAcorns = Math.max(0, totalPrestigePossible - goldenAcorns);
+        const ascendBtn = document.getElementById('ascend-btn');
+        const ascendText = document.getElementById('ascend-text');
+        const acornCounter = document.getElementById('acorn-counter');
+        const tpsCounter = document.getElementById('tps-counter');
+
+const currentTPS = getTotalPassiveTPS() * currentMultiplier * frenzyMultiplier * getPrestigeMultiplier();
+        tpsCounter.innerText = `${currentTPS < 1000000 ? currentTPS.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1}) : formatNumberWords(currentTPS)} per second`;
+        if (totalTokensEver >= 1000000000000) ascendBtn.style.display = 'flex';
+        ascendText.innerText = `+${pendingAcorns} Golden Acorns`;
+        
+        if (goldenAcorns > 0) {
+            acornCounter.style.display = 'block';
+            acornCounter.innerText = `${goldenAcorns} Prestige (+${goldenAcorns}%) | ${unspentAcorns} Unspent`;
+            document.getElementById('ascension-shop-btn').style.display = 'flex';
+            document.getElementById('unspent-display').innerText = unspentAcorns;
+            document.getElementById('offline-eff-txt').innerText = `${offlineUpgradeLevel * 5}%`;
+            const nextOfflineCost = freeShopEnabled ? 0 : offlineUpgradeLevel + 1;
+            document.getElementById('offline-cost-txt').innerText = `Cost: ${nextOfflineCost}`;
+            document.getElementById('buy-offline-btn').disabled = unspentAcorns < nextOfflineCost;      
+        } else {
+            acornCounter.style.display = 'none';
+            document.getElementById('ascension-shop-btn').style.display = 'none';
+        }
+        
+if (currentFloor !== displayCount || forceUpdate) {
+            counterDisplay.innerText = `${formatNumberWords(currentFloor)} Token${currentFloor !== 1 ? 's' : ''}`;
+            displayCount = currentFloor;
+
+            chronCost = freeShopEnabled ? 0 : Math.ceil(10 * Math.pow(1.15, chronCount));
+            chumCost = freeShopEnabled ? 0 : Math.ceil(100 * Math.pow(1.20, chumCount));
+            johnCost = freeShopEnabled ? 0 : Math.ceil(1000 * Math.pow(1.25, johnCount));
+
+            let chronSell = Math.floor(Math.ceil(10 * Math.pow(1.15, Math.max(0, chronCount - 1))) * 0.5);
+            let chumSell = Math.floor(Math.ceil(100 * Math.pow(1.20, Math.max(0, chumCount - 1))) * 0.5);
+            let johnSell = Math.floor(Math.ceil(1000 * Math.pow(1.25, Math.max(0, johnCount - 1))) * 0.5);
+
+if (shopMode === 'buy') {
+                buyChronText.innerText = `Buy Chronister (${formatNumberWords(chronCost)})`;
+                buyChronBtn.disabled = count < chronCost;
+
+                document.getElementById('buy-chum-text').innerText = `Buy Chumtoad (${formatNumberWords(chumCost)})`;
+                document.getElementById('buy-chum-btn').disabled = count < chumCost;
+                
+                buyJohnText.innerText = `Buy John (${formatNumberWords(johnCost)})`;
+                buyJohnBtn.disabled = count < johnCost;
+            } else {
+                buyChronText.innerText = `Sell Chronister (+${formatNumberWords(chronSell)})`;
+                buyChronBtn.disabled = chronCount <= 0;
+
+                document.getElementById('buy-chum-text').innerText = `Sell Chumtoad (+${formatNumberWords(chumSell)})`;
+                document.getElementById('buy-chum-btn').disabled = chumCount <= 0;
+                
+                buyJohnText.innerText = `Sell John (+${formatNumberWords(johnSell)})`;
+                buyJohnBtn.disabled = johnCount <= 0;
+            }
+            
+            document.getElementById('chron-owned').innerText = `[${chronCount}]`;
+            document.getElementById('chum-owned').innerText = `[${chumCount}]`;
+            document.getElementById('john-owned').innerText = `[${johnCount}]`;
+
+            document.getElementById('x2-text').innerHTML = `x2 Boost (60s)<br>Cost: ${freeShopEnabled ? 0 : 500}`;
+            document.getElementById('x5-text').innerHTML = `x5 Boost (30s)<br>Cost: ${freeShopEnabled ? 0 : 5000}`;
+            document.getElementById('buy-x2-btn').disabled = count < (freeShopEnabled ? 0 : 500) || currentMultiplier > 1;
+            document.getElementById('buy-x5-btn').disabled = count < (freeShopEnabled ? 0 : 5000) || currentMultiplier > 1;
+        }
+    }
+
+    const BUILDING_CONFIG = {
+        'john': {
+            bg: 'bg/bg_john.png',
+            icon: 'ent/john.png',
+            scrollColor: '#f1c40f',
+            scrollHover: '#f39c12',
+            scrollTrack: 'rgba(241, 196, 15, 0.2)'
+        },
+        'chron': {
+            bg: 'bg/bg_chron.png',
+            icon: 'ent/chron.png',
+            scrollColor: '#6a0dad',
+            scrollHover: '#8e44ad',
+            scrollTrack: 'rgba(106, 13, 173, 0.2)'
+        },
+        'chum': {
+            bg: 'bg/bg_chum.png',
+            icon: 'ent/chum_1.png',
+            scrollColor: '#27ae60',
+            scrollHover: '#2ecc71',
+            scrollTrack: 'rgba(39, 174, 96, 0.2)'
+        }
+    };
+
+    const buildingData = {};
+    const ENT_SPACING = 35;
+    let activeDragId = null;
+
+    function initBuildingCanvas(id) {
+        let config = BUILDING_CONFIG[id];
+        let sidebar = document.getElementById('building-sidebar');
+        let canvas = document.createElement('canvas');
+        canvas.id = `rowCanvas-${id}`;
+        canvas.width = sidebar.clientWidth || 338; 
+        canvas.height = 128;
+        canvas.className = 'rowCanvas';
+        sidebar.appendChild(canvas);
+
+        let rowData = {
+            canvas: canvas,
+            ctx: canvas.getContext('2d'),
+            bgImg: new Image(),
+            entImg: new Image(),
+            count: 0,
+            entities: [],
+            renderOrder: [],
+            scrollX: 0,
+            bgScrollX: 0,
+            dragStartX: 0,
+            scrollStartX: 0,
+            mouseX: -1,
+            mouseY: -1
+        };
+        rowData.bgImg.src = config.bg;
+        rowData.entImg.src = config.icon;
+        buildingData[id] = rowData;
+
+        let clickStartX = 0;
+
+        canvas.addEventListener('mousedown', (e) => {
+            let rect = canvas.getBoundingClientRect();
+            let mouseY = e.clientY - rect.top;
+            clickStartX = e.clientX;
+            
+            if (mouseY > 108) {
+                activeDragId = id;
+                rowData.dragStartX = e.clientX;
+                rowData.scrollStartX = rowData.scrollX;
+                document.body.classList.add('is-dragging');
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            let rect = canvas.getBoundingClientRect();
+            rowData.mouseX = e.clientX - rect.left;
+            rowData.mouseY = e.clientY - rect.top;
+        });
+        
+        canvas.addEventListener('mouseleave', () => {
+            rowData.mouseX = -1;
+            rowData.mouseY = -1;
+        });
+
+        canvas.addEventListener('mouseup', (e) => {
+            if (Math.abs(e.clientX - clickStartX) < 5 && rowData.mouseY <= 108 && (id === 'chron' || id === 'chum')) {
+                let hoveredIdx = -1;
+                for (let k = rowData.renderOrder.length - 1; k >= 0; k--) {
+                    let i = rowData.renderOrder[k].index;
+                    let ent = rowData.renderOrder[k].ent;
+                    let dx = 15 + (i * ENT_SPACING) + ent.offsetX - rowData.scrollX;
+                    let dy = ent.offsetY + (ent.jumpY || 0);
+                    if (rowData.mouseX >= dx && rowData.mouseX <= dx + 45 && rowData.mouseY >= dy && rowData.mouseY <= dy + 45) { 
+                        hoveredIdx = i; 
+                        break; 
+                    }
+                }
+                if (hoveredIdx !== -1) openUpgradeModal(id, hoveredIdx);
+            }
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault(); 
+            let maxScroll = Math.max(0, (rowData.count * ENT_SPACING) + 60 - canvas.width);
+            rowData.scrollX += e.deltaY * 0.5;
+            if (rowData.scrollX < 0) rowData.scrollX = 0;
+            if (rowData.scrollX > maxScroll) rowData.scrollX = maxScroll;
+        });
+    }
+
+    window.addEventListener('mousemove', (e) => {
+        if (activeDragId) {
+            let rowData = buildingData[activeDragId];
+            let maxScroll = Math.max(0, (rowData.count * ENT_SPACING) + 60 - rowData.canvas.width);
+            if (maxScroll <= 0) return;
+            let dragDist = e.clientX - rowData.dragStartX;
+            let trackWidth = rowData.canvas.width - 20;
+            let thumbWidth = Math.max(20, (rowData.canvas.width / ((rowData.count * ENT_SPACING) + 60)) * trackWidth);
+            let ratio = maxScroll / (trackWidth - thumbWidth);
+            rowData.scrollX = rowData.scrollStartX + (dragDist * ratio);
+            if (rowData.scrollX < 0) rowData.scrollX = 0;
+            if (rowData.scrollX > maxScroll) rowData.scrollX = maxScroll;
+        }
+    });
+
+    window.addEventListener('mouseup', () => { 
+        activeDragId = null; 
+        document.body.classList.remove('is-dragging');
+    });
+
+    function updateArmyVisibility() {
+        const msg = document.getElementById('no-soldiers-msg');
+        if (!msg) return;
+        if (johnCount === 0 && chronCount === 0 && chumCount === 0) {
+            msg.style.display = 'flex';
+        } else { msg.style.display = 'none'; }
+    }
+
+    function syncArmyCount(id, currentCount) {
+        if (currentCount <= 0) {
+            if (buildingData[id]) {
+                let canvas = buildingData[id].canvas;
+                if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas);
+                delete buildingData[id];
+                buildingOrder = buildingOrder.filter(item => item !== id);
+            }
+            updateArmyVisibility();
+            return;
+        }
+
+        if (!buildingData[id]) {
+            initBuildingCanvas(id);
+            if (!buildingOrder.includes(id)) buildingOrder.push(id);
+        }
+        
+        let rowData = buildingData[id];
+        rowData.count = currentCount;
+        
+        while (rowData.entities.length < currentCount) {
+            rowData.entities.push({ offsetX: (Math.random() - 0.5) * 15, offsetY: 50 + (Math.random() - 0.5) * 30 });
+        }
+        
+        while (rowData.entities.length > currentCount) {
+            rowData.entities.pop();
+        }
+        
+        rowData.renderOrder = rowData.entities.map((ent, index) => ({ index, ent }));
+        rowData.renderOrder.sort((a, b) => a.ent.offsetY - b.ent.offsetY);
+        
+        updateArmyVisibility();
+    }
+
+    function openUpgradeModal(type, index) {
+        let lvl, maxLvl, baseCost, prodMult, titleName;
+        
+        if (type === 'john') {
+            lvl = 1; maxLvl = 1; baseCost = 0; prodMult = 25; titleName = "John";
+        } else if (type === 'chron') {
+            lvl = chronLevels[index] || 1;
+            maxLvl = MAX_LEVELS['chron'];
+            baseCost = 50; prodMult = 1; titleName = "Chronister";
+        } else if (type === 'chum') {
+            lvl = chumLevels[index] || 1;
+            maxLvl = MAX_LEVELS['chum'];
+            baseCost = 500; prodMult = 5; titleName = "Chumtoad";
+        }
+
+        const isMax = lvl >= maxLvl;
+        const nextLvl = isMax ? lvl : lvl + 1;
+        const upgradeCost = lvl * baseCost;
+        activeUpgradeIndex = index;
+
+        const titleEl = document.getElementById('upg-title');
+        const imgEl = document.getElementById('upg-chron-img');
+        const lvlEl = document.getElementById('upg-current-lvl');
+        const prodEl = document.getElementById('upg-prod-text');
+        const btn = document.getElementById('confirm-upgrade-btn');
+
+        let currentImg = type === 'chron' ? `ent/chron_${lvl}.png` : `ent/chum_${lvl}.png`;
+        let nextImg = type === 'chron' ? `ent/chron_${nextLvl}.png` : `ent/chum_${nextLvl}.png`;
+
+        titleEl.innerText = isMax ? `Max Level Reached!` : titleName;
+        imgEl.src = currentImg;
+        imgEl.style.transform = 'scale(1)';
+        lvlEl.innerText = lvl + (isMax ? " (MAX)" : "");
+        prodEl.innerHTML = `Production: <b style="color: #27ae60;">${lvl * prodMult} TPS</b>`;
+
+        if (isMax) {
+            btn.innerText = "Maxed Out";
+            btn.disabled = true;
+            btn.style.backgroundColor = "#95a5a6";
+            btn.onmouseenter = null; btn.onmouseleave = null; btn.onclick = null;
+        } else {
+btn.innerText = `Upgrade (Cost: ${formatNumberWords(upgradeCost)})`;            btn.disabled = count < upgradeCost && !freeShopEnabled;
+            btn.style.backgroundColor = "#2ecc71";
+            
+            btn.onmouseenter = () => {
+                titleEl.innerText = `Upgrade to Level ${nextLvl}?`;
+                imgEl.src = nextImg;
+                imgEl.style.transform = 'scale(1.15)';
+                prodEl.innerHTML = `Production: ${lvl * prodMult} TPS ➔ <b style="color: #27ae60;">${nextLvl * prodMult} TPS</b>`;
+            };
+            
+            btn.onmouseleave = () => {
+                titleEl.innerText = titleName;
+                imgEl.src = currentImg;
+                imgEl.style.transform = 'scale(1)';
+                prodEl.innerHTML = `Production: <b style="color: #27ae60;">${lvl * prodMult} TPS</b>`;
+            };
+
+            btn.onclick = () => {
+                if (count >= upgradeCost || freeShopEnabled) {
+                    if (!freeShopEnabled) count -= upgradeCost;
+                    
+                    if (type === 'chron') chronLevels[index]++;
+                    if (type === 'chum') chumLevels[index]++;
+                    
+                    saveGame();
+                    updateDisplay(true);
+                    
+                    syncArmyCount(type, type === 'chron' ? chronCount : chumCount); 
+                    
+                    btn.onmouseleave(); 
+                    openUpgradeModal(type, index); 
+                    
+                    spawnTextPopup(window.innerWidth / 2, window.innerHeight / 2, "LEVEL UP!", '#8e44ad');
+                }
+            };
+        }
+        openModal('upgrade-panel');
+    }
+
+    function drawArmyCanvases() {
+        for (let id in buildingData) {
+            let row = buildingData[id];
+            let ctx = row.ctx;
+            let cW = row.canvas.width;
+            let cH = row.canvas.height;
+            ctx.clearRect(0, 0, cW, cH);
+            row.bgScrollX -= 0.3;
+            if (row.bgImg.complete && row.bgImg.naturalWidth > 0) {
+                let scale = cH / row.bgImg.naturalWidth;
+                let drawW = row.bgImg.naturalWidth * scale;
+                let startX = row.bgScrollX % drawW;
+                if (startX > 0) startX -= drawW;
+                for (let x = startX; x < cW; x += drawW) { ctx.drawImage(row.bgImg, x, 0, drawW + 1, cH); }
+            }
+            let maxScroll = Math.max(0, (row.count * ENT_SPACING) + 60 - cW);
+            
+            let hoveredIdx = -1;
+            for (let k = row.renderOrder.length - 1; k >= 0; k--) {
+                let i = row.renderOrder[k].index;
+                let ent = row.renderOrder[k].ent;
+                let dx = 15 + (i * ENT_SPACING) + ent.offsetX - row.scrollX;
+                let dy = ent.offsetY + (ent.jumpY || 0); 
+                if (row.mouseX >= dx && row.mouseX <= dx + 45 && row.mouseY >= dy && row.mouseY <= dy + 45) { 
+                    hoveredIdx = i; 
+                    break; 
+                }
+            }
+
+            if (!document.body.classList.contains('is-dragging')) {
+                if (row.mouseY > 108 && maxScroll > 0) { 
+                    row.canvas.style.cursor = 'grab';
+                } else if (hoveredIdx !== -1 && (id === 'chron' || id === 'chum')) {
+                    row.canvas.style.cursor = 'pointer';
+                } else {
+                    row.canvas.style.cursor = 'default';
+                }
+            }
+
+            ctx.shadowColor = 'rgba(0,0,0,0.6)';
+            
+            let hoveredDrawCall = null;
+
+            for (let k = 0; k < row.renderOrder.length; k++) {
+                let i = row.renderOrder[k].index;
+                let ent = row.renderOrder[k].ent;
+                
+                ent.jumpY = ent.jumpY || 0;
+                let isHovered = (i === hoveredIdx);
+                
+                ent.jumpY += ((isHovered ? -12 : 0) - ent.jumpY) * 0.25;
+
+                let drawX = 15 + (i * ENT_SPACING) + ent.offsetX - row.scrollX;
+                let drawY = ent.offsetY;
+                
+                let imgToDraw = row.entImg;
+                let currentLvl = 1;
+                if (id === 'chron') {
+                    currentLvl = chronLevels[i] || 1;
+                    imgToDraw = getChronImg(currentLvl);
+                } else if (id === 'chum') {
+                    currentLvl = chumLevels[i] || 1;
+                    imgToDraw = getChumImg(currentLvl);
+                }
+                
+                if (drawX > -60 && drawX < cW + 60 && imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
+                    const drawEntity = () => {
+                        let size = isHovered ? 55 : 45;
+                        let offset = isHovered ? -5 : 0;
+                        let finalY = drawY + offset + ent.jumpY; 
+
+                        ctx.shadowBlur = isHovered ? 12 : 4;
+                        ctx.shadowOffsetY = isHovered ? 8 : 4;
+                        ctx.drawImage(imgToDraw, drawX + offset, finalY, size, size);
+                        
+                        if ((id === 'chron' || id === 'chum') && currentLvl >= 1) {
+                            ctx.shadowBlur = 2;
+                            ctx.shadowOffsetY = 2;
+                            ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+                            ctx.beginPath();
+                            ctx.roundRect(drawX + offset, finalY + size - 12, 30, 14, 4);
+                            ctx.fill();
+                            ctx.fillStyle = isHovered ? "#2ecc71" : "#f1c40f";
+                            ctx.font = "900 10px Nunito";
+                            ctx.textAlign = "left";
+                            ctx.textBaseline = "top";
+                            ctx.fillText(`Lv.${currentLvl}`, drawX + offset + 4, finalY + size - 10);
+                        }
+                    };
+
+                    if (isHovered) {
+                        hoveredDrawCall = drawEntity; 
+                    } else {
+                        drawEntity(); 
+                    }
+                }
+            }
+            
+            if (hoveredDrawCall) {
+                hoveredDrawCall();
+            }
+
+            ctx.shadowColor = 'transparent';
+            
+            if (maxScroll > 0) {
+                let trackWidth = cW - 20;
+                let config = BUILDING_CONFIG[id];
+
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.beginPath(); ctx.roundRect(10, cH - 15, trackWidth, 8, 4); ctx.fill();
+
+                let thumbWidth = Math.max(20, (cW / ((row.count * ENT_SPACING) + 60)) * trackWidth);
+                let thumbX = 10 + ((row.scrollX / maxScroll) * (trackWidth - thumbWidth));
+                
+                ctx.fillStyle = (row.mouseY > 108 && row.mouseX > thumbX && row.mouseX < thumbX + thumbWidth) ? config.scrollHover : config.scrollColor;
+                ctx.beginPath(); ctx.roundRect(thumbX, cH - 15, thumbWidth, 8, 4); ctx.fill();
+            }
+        }
+    }
+
+    function activateBooster(mult, cost, durationMs) {
+        if (count >= cost && currentMultiplier === 1) {
+            count -= cost;
+            currentMultiplier = mult;
+            updateDisplay(true);
+            const iconSrc = mult === 2 ? 'icon/x2_icon.png' : 'icon/x5_icon.png';
+            if (activeBooster && activeBooster.el) activeBooster.el.remove();
+            const box = document.createElement('div'); box.className = 'buff-box';
+            const img = document.createElement('img'); img.src = iconSrc; img.className = 'buff-icon-img';
+            const overlay = document.createElement('div'); overlay.className = 'buff-overlay';
+            box.appendChild(img); box.appendChild(overlay);
+            document.getElementById('buffs-container').appendChild(box);
+            activeBooster = { mult: mult, end: Date.now() + durationMs, duration: durationMs, el: box, overlay: overlay };
+        }
+    }
+
+    function activateFrenzy() {
+        frenzyMultiplier = 7;
+        targetAnimSpeed = 1.25;
+        document.body.classList.add('frenzy-active');
+        updateDisplay(true);
+        const durationMs = 77000;
+        if (activeFrenzy && activeFrenzy.el) activeFrenzy.el.remove();
+        const box = document.createElement('div'); box.className = 'buff-box';
+        const img = document.createElement('img'); img.src = 'main/golden_squirrel.png'; img.className = 'buff-icon-img';
+        const overlay = document.createElement('div'); overlay.className = 'buff-overlay';
+        box.appendChild(img); box.appendChild(overlay);
+        document.getElementById('buffs-container').appendChild(box);
+        activeFrenzy = { end: Date.now() + durationMs, duration: durationMs, el: box, overlay: overlay };
+    }
+
+    function spawnGoldenSquirrel() {
+        if (activeFrenzy !== null) return;
+        if (document.querySelector('.golden-squirrel')) return;
+        
+        const gs = document.createElement('img');
+        gs.src = 'main/golden_squirrel.png'; gs.className = 'golden-squirrel';
+        gs.style.left = Math.floor(Math.random() * (window.innerWidth - 370) + 270) + 'px';
+        gs.style.top = Math.floor(Math.random() * (window.innerHeight - 150) + 50) + 'px';
+        document.body.appendChild(gs);
+        const poofTimer = setTimeout(() => { if (gs.parentElement) gs.remove(); }, 13000);
+        function catchGolden(e) {
+            if (e.cancelable) e.preventDefault();
+            if (e.type === 'mousedown' && e.button !== 0) return;
+            if (gs.parentElement) gs.remove();
+            clearTimeout(poofTimer);
+            activateFrenzy();
+        }
+        gs.addEventListener('mousedown', catchGolden);
+        gs.addEventListener('touchstart', catchGolden, { passive: false });
+    }
+
+    setInterval(() => { if (Math.random() < 0.01) spawnGoldenSquirrel(); }, 1000);
+
+    function triggerLevelTutorial(type) {
+        if (hasSeenLevelTut) return; 
+        hasSeenLevelTut = true;
+        
+        openModal('tutorial-panel');
+        
+        const entName = type === 'chron' ? 'Chronister' : 'Chumtoad';
+        document.getElementById('tut-desc-text').innerHTML = `You have bought a ${entName}, which supports <b>Levels</b>! You can upgrade your soldiers stats based on its level!<br><br>Upgrade in the <b>[Armies]</b> tab!`;
+        
+        const maxLvl = MAX_LEVELS[type];
+        let animLvl = 1;
+        clearInterval(tutAnimInterval);
+        
+        const img = document.getElementById('tut-level-img');
+        const textEl = document.getElementById('tut-level-text');
+        
+        textEl.innerText = `Level 1`;
+        textEl.style.color = '#8e44ad';
+        img.src = `ent/${type}_1.png`;
+        img.style.transform = `scale(1.12)`;
+        
+        tutAnimInterval = setInterval(() => {
+            animLvl = (animLvl % maxLvl) + 1;
+            textEl.innerText = `Level ${animLvl}`;
+            textEl.style.color = animLvl === maxLvl ? '#e74c3c' : '#8e44ad';
+            img.src = `ent/${type}_${animLvl}.png`;
+            img.style.transform = `scale(${1 + (animLvl * 0.12)})`; 
+        }, 1000);
+    }
+
+    function buyChron() {
+        let px = window.innerWidth / 2 + (Math.random() - 0.5) * 150;
+        let py = window.innerHeight / 2 - 100 + (Math.random() - 0.5) * 100;
+
+        if (shopMode === 'buy') {
+            if (count >= chronCost) {
+                count -= chronCost;
+                chronCount++;
+                chronLevels.push(1);
+if (!freeShopEnabled) spawnTextPopup(px, py, `-${formatNumberWords(chronCost)}`, '#ff4c4c');                
+                if (chronCount === 1) triggerLevelTutorial('chron');
+
+                saveGame();
+                updateDisplay(true);
+                syncArmyCount('chron', chronCount);
+                checkAchievements();
+            }
+        } else if (shopMode === 'sell' && chronCount > 0) {
+            let refund = Math.floor(Math.ceil(10 * Math.pow(1.15, chronCount - 1)) * 0.5);
+            count += refund;
+            chronCount--;
+            chronLevels.pop();
+spawnTextPopup(px, py, `+${formatNumberWords(refund)}`, '#4cff4c'); 
+            saveGame();
+            updateDisplay(true);
+            syncArmyCount('chron', chronCount);
+        }
+    }
+
+    function buyChum() {
+        let px = window.innerWidth / 2 + (Math.random() - 0.5) * 150;
+        let py = window.innerHeight / 2 - 100 + (Math.random() - 0.5) * 100;
+
+        if (shopMode === 'buy') {
+            if (count >= chumCost) {
+                count -= chumCost;
+                chumCount++;
+                chumLevels.push(1);
+                if (chumCount === 1) triggerLevelTutorial('chum');
+if (!freeShopEnabled) spawnTextPopup(px, py, `-${formatNumberWords(chumCost)}`, '#ff4c4c');                
+saveGame(); updateDisplay(true); syncArmyCount('chum', chumCount); checkAchievements();
+            }
+        } else if (shopMode === 'sell' && chumCount > 0) {
+            let refund = Math.floor(Math.ceil(100 * Math.pow(1.20, chumCount - 1)) * 0.5);
+            count += refund; chumCount--; chumLevels.pop();
+spawnTextPopup(px, py, `+${formatNumberWords(refund)}`, '#4cff4c'); 
+            saveGame(); updateDisplay(true); syncArmyCount('chum', chumCount);
+        }
+    }
+
+    function buyJohn() {
+        let px = window.innerWidth / 2 + (Math.random() - 0.5) * 150;
+        let py = window.innerHeight / 2 - 100 + (Math.random() - 0.5) * 100;
+
+        if (shopMode === 'buy') {
+            if (count >= johnCost) {
+                count -= johnCost;
+                johnCount++;
+if (!freeShopEnabled) spawnTextPopup(px, py, `-${formatNumberWords(johnCost)}`, '#ff4c4c');                saveGame();
+                updateDisplay(true);
+                syncArmyCount('john', johnCount);
+                checkAchievements();
+            }
+        } else if (shopMode === 'sell' && johnCount > 0) {
+            let refund = Math.floor(Math.ceil(1000 * Math.pow(1.25, johnCount - 1)) * 0.5);
+            count += refund; 
+            johnCount--;
+spawnTextPopup(px, py, `+${formatNumberWords(refund)}`, '#4cff4c');
+            saveGame();
+            updateDisplay(true);
+            syncArmyCount('john', johnCount);
+        }
+    }
+
+    document.getElementById('buy-chron-btn').addEventListener('click', buyChron);
+    document.getElementById('buy-chum-btn').addEventListener('click', buyChum);
+    document.getElementById('buy-john-btn').addEventListener('click', buyJohn);
+
+    function bumpText() {
+        counterDisplay.classList.add('text-bump');
+        setTimeout(() => { counterDisplay.classList.remove('text-bump'); }, 100);
+    }
+
+    function createMiniSquirrel(x, y, isAuto = false) {
+        particles.push({
+            x: x, y: y,
+            vx: (Math.random() - 0.5) * 5,
+            vy: -8 - Math.random() * 6,
+            opacity: isAuto ? 0.5 : 1,
+            rotation: 0,
+            size: isAuto ? 20 : 40,
+            isAuto: isAuto, scale: 0.1, life: 0
+        });
+    }
+
+function spawnPopup(x, y, amount) {
+        let displayAmount = amount < 1000000 ? parseFloat(amount.toFixed(1)) : formatNumberWords(amount);
+        popups.push({ x: x, y: y, text: "+" + displayAmount, opacity: 1, vy: -2, scale: 0.1, life: 0 });
+    }
+
+const textCache = {};
+    function getCachedText(text, color) {
+        const key = text + '_' + color;
+        if (textCache[key]) return textCache[key];
+        
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        ctx.font = '900 24px Nunito';
+        const width = ctx.measureText(text).width;
+        
+        canvas.width = width + 16; 
+        canvas.height = 40; 
+        
+        ctx.font = '900 24px Nunito';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = color || '#ffdf00';
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.lineJoin = 'round';
+        
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+        
+        ctx.strokeText(text, cx, cy);
+        ctx.fillText(text, cx, cy);
+        
+        textCache[key] = canvas;
+        return canvas;
+    }
+
+    function spawnTextPopup(x, y, text, color) {
+        popups.push({ 
+            x: x, 
+            y: y, 
+            text: text, 
+            color: color, 
+            opacity: 1, 
+            vy: -2, 
+            scale: 0.1, 
+            life: 0 
+        });
+    }
+
+window.gMouseX = window.innerWidth / 2;
+    window.gMouseY = window.innerHeight / 2;
+    window.addEventListener('mousemove', e => {
+        window.gMouseX = e.clientX;
+        window.gMouseY = e.clientY;
+    });
+
+    function checkCull(x, y, sizeX, sizeY, angle, scaleX, scaleY, wL, wR, wT, wB) {
+        const cosA = Math.abs(Math.cos(angle));
+        const sinA = Math.abs(Math.sin(angle));
+        const hw = (sizeX / 2) * Math.abs(scaleX);
+        const hh = (sizeY / 2) * Math.abs(scaleY);
+        const extX = hw * cosA + hh * sinA;
+        const extY = hw * sinA + hh * cosA;
+        return x + extX >= wL && x - extX <= wR && y + extY >= wT && y - extY <= wB;
+    }
+
+function animateEntities() {
+        if (document.hidden) {
+            lastAnimTime = performance.now(); 
+            requestAnimationFrame(animateEntities);
+            return;
+        }
+
+        const perfNow = performance.now();
+        if (!isFocused && (perfNow - lastRenderTime < 66.6)) { 
+            requestAnimationFrame(animateEntities);
+            return;
+        }
+        lastRenderTime = perfNow;
+
+        const CHRON_SIZE = 95;
+        const CHRON_SPACING = 85;
+        const CHUM_SIZE = 75;
+        const CHUM_SPACING = 95;
+        const JOHN_SIZE = 85; 
+        const JOHN_SPACING = 75;
+
+const realNowTime = Date.now();
+        let dt = perfNow - lastAnimTime;
+        if (dt > 100) dt = 16.666;
+        lastAnimTime = perfNow;
+
+        bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+        fgCtx.clearRect(0, 0, fgCanvas.width, fgCanvas.height);
+
+        let currentBgTPS = getTotalPassiveTPS() * currentMultiplier * frenzyMultiplier * getPrestigeMultiplier();
+        let visualSpawnRate = Math.min(currentBgTPS * 0.25, 40); 
+        
+        if (visualSpawnRate > 0) {
+            bgTokenAccumulator += visualSpawnRate * (dt / 1000);
+            while (bgTokenAccumulator >= 1) {
+                bgTokens.push({
+                    x: Math.random() * window.innerWidth,
+                    y: -50,
+                    vy: 100 + Math.random() * 150, 
+                    vx: -30 - Math.random() * 120,
+                    size: 15 + Math.random() * 20,
+                    rot: Math.random() * 360,
+                    rotSpeed: (Math.random() - 0.5) * 150,
+                    opacity: 0.15 + Math.random() * 0.25
+                });
+                bgTokenAccumulator--;
+            }
+        }
+
+        for (let i = bgTokens.length - 1; i >= 0; i--) {
+            let t = bgTokens[i];
+            t.y += t.vy * (dt / 1000);
+            t.rot += t.rotSpeed * (dt / 1000);
+            
+            if (t.y > window.innerHeight + 50) {
+                bgTokens.splice(i, 1);
+                continue;
+            }
+            
+            bgCtx.save();
+            bgCtx.globalAlpha = t.opacity;
+            bgCtx.translate(t.x, t.y);
+            bgCtx.rotate(t.rot * Math.PI / 180);
+            if (imgToken.complete && imgToken.naturalWidth !== 0) {
+                bgCtx.drawImage(imgToken, -t.size/2, -t.size/2, t.size, t.size);
+            }
+            bgCtx.restore();
+        }
+        
+        bgCtx.imageSmoothingEnabled = smoothZoom <= 2.0;
+        fgCtx.imageSmoothingEnabled = smoothZoom <= 2.0;
+
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        const frameMultiplier = (dt / 16.666) * currentAnimSpeed;
+
+        if (currentAnimSpeed < targetAnimSpeed) {
+            currentAnimSpeed = Math.min(targetAnimSpeed, currentAnimSpeed + (dt / 2000) * 0.25);
+        } else if (currentAnimSpeed > targetAnimSpeed) {
+            currentAnimSpeed = Math.max(targetAnimSpeed, currentAnimSpeed - (dt / 2000) * 0.25);
+        }
+
+        gameTime += dt * currentAnimSpeed;
+
+        let renderCountPenalty = Math.max(0, (window.lastFrameEntities || 0) - 50) * 0.15; 
+        window.currentFrameEntities = 0;
+
+        let cullPanX = showCullBox ? cullLockX : camPanX;
+        let cullPanY = showCullBox ? cullLockY : camPanY;
+        let cullZoom = showCullBox ? cullLockZoom : smoothZoom;
+
+        let worldLeft = (-cullPanX - centerX) / cullZoom + centerX;
+        let worldRight = (window.innerWidth - cullPanX - centerX) / cullZoom + centerX;
+        let worldTop = (-cullPanY - centerY) / cullZoom + centerY;
+        let worldBottom = (window.innerHeight - cullPanY - centerY) / cullZoom + centerY;
+
+        bgCtx.save();
+        if (freeCamEnabled) bgCtx.translate(camPanX, camPanY);
+        bgCtx.translate(centerX, centerY);
+        bgCtx.scale(smoothZoom, smoothZoom); 
+        bgCtx.translate(-centerX, -centerY);
+
+        if (showCullBox) {
+            bgCtx.save();
+            bgCtx.strokeStyle = '#ff0000';
+            bgCtx.lineWidth = 4 / smoothZoom;
+            bgCtx.setLineDash([20 / smoothZoom, 20 / smoothZoom]);
+            bgCtx.strokeRect(worldLeft, worldTop, worldRight - worldLeft, worldBottom - worldTop);
+            bgCtx.restore();
+        }
+
+        let pointerAngle = 0;
+        if (showLodText) {
+            const mouseWorldX = (window.gMouseX - camPanX - centerX) / smoothZoom + centerX;
+            const mouseWorldY = (window.gMouseY - camPanY - centerY) / smoothZoom + centerY;
+            pointerAngle = Math.atan2(mouseWorldY - centerY, mouseWorldX - centerX);
+            
+            if (chronCount > 0 || johnCount > 0 || chumCount > 0) {
+                bgCtx.save();
+                
+                bgCtx.beginPath();
+                bgCtx.rect(worldLeft, worldTop, worldRight - worldLeft, worldBottom - worldTop);
+                bgCtx.clip();
+
+                bgCtx.strokeStyle = "rgba(255, 0, 0, 0.8)";
+                bgCtx.lineWidth = 4 / smoothZoom;
+                bgCtx.beginPath();
+                bgCtx.moveTo(centerX, centerY);
+                bgCtx.lineTo(centerX + Math.cos(pointerAngle) * 20000, centerY + Math.sin(pointerAngle) * 20000); 
+                bgCtx.stroke();
+                bgCtx.restore();
+            }
+        }
+
+        let lodTextsToDraw = [];
+        let nextStartRadius = 240;
+
+        let currentChronRadius = nextStartRadius;
+        let chronCapacity = Math.max(1, Math.floor((2 * Math.PI * currentChronRadius) / CHRON_SPACING)); 
+        let chronPlacedInRing = 0;
+        
+        let chronRingDelay = 16;
+        let chronSnappedOrbit = 0;
+        let chronSnappedWave = 0;
+
+        for (let i = 0; i < chronCount; i++) {
+            if (chronPlacedInRing === 0) {
+                let zPenalty = Math.max(0, (1 - smoothZoom) * 20); 
+                let radiusPenalty = Math.max(0, (currentChronRadius - 250) * 0.02);
+                chronRingDelay = Math.max(16, Math.min(250, 16 + zPenalty + radiusPenalty + renderCountPenalty));
+
+                let orbitCycle = gameTime % 20000;
+                chronSnappedOrbit = orbitCycle - (orbitCycle % chronRingDelay);
+                
+                let waveCycle = gameTime % 1256.637;
+                chronSnappedWave = waveCycle - (waveCycle % chronRingDelay);
+
+                if (showLodText) {
+                    const textX = centerX + Math.cos(pointerAngle) * currentChronRadius;
+                    const textY = centerY + Math.sin(pointerAngle) * currentChronRadius;
+                    if (textX > worldLeft - 100 && textX < worldRight + 100 && textY > worldTop - 100 && textY < worldBottom + 100) {
+                        lodTextsToDraw.push({ x: textX, y: textY, text: chronRingDelay.toFixed(1) + "ms" });
+                    }
+                }
+            }
+
+            const baseAngle = (chronPlacedInRing / chronCapacity) * (Math.PI * 2); 
+            let angle = baseAngle - ((chronSnappedOrbit / 20000) * Math.PI * 2); 
+            
+            const x = centerX + Math.sin(angle) * currentChronRadius;
+            const y = centerY - Math.cos(angle) * currentChronRadius;
+            
+            chronPlacedInRing++;
+
+            const cMinX = Math.min(centerX, x) - 10;
+            const cMaxX = Math.max(centerX, x) + 10;
+            const cMinY = Math.min(centerY, y) - 10;
+            const cMaxY = Math.max(centerY, y) + 10;
+            const lineVisible = (cMaxX >= worldLeft && cMinX <= worldRight && cMaxY >= worldTop && cMinY <= worldBottom);
+            const imgVisible = checkCull(x, y, CHRON_SIZE, CHRON_SIZE, angle, 0.85, 0.85, worldLeft, worldRight, worldTop, worldBottom);
+
+            if (lineVisible || imgVisible) {
+                window.currentFrameEntities++;
+                let chronLvl = chronLevels[i] || 1;
+                const wave = Math.cos((chronSnappedWave / 300) * 1.5 + i);
+                if (lineVisible) {
+                    const spread = 12 + (wave * 8); bgCtx.save();
+                    bgCtx.translate(centerX, centerY); bgCtx.rotate(angle);
+                    let zoomDiv = Math.max(1, smoothZoom);
+                    if (chronLvl < 3) {
+                        bgCtx.globalAlpha = Math.max(0.25, 0.4 + (wave * 0.2));
+                        bgCtx.strokeStyle = chronLvl === 2 ? '#ff4d4d' : '#ff2a2a'; 
+                        bgCtx.lineWidth = (chronLvl === 2 ? 7 : 3) / zoomDiv; 
+                        bgCtx.beginPath(); bgCtx.moveTo(-spread / 2, 0); bgCtx.lineTo(-spread / 2, -currentChronRadius); bgCtx.stroke();
+                        bgCtx.beginPath(); bgCtx.moveTo(spread / 2, 0); bgCtx.lineTo(spread / 2, -currentChronRadius); bgCtx.stroke();
+                    } else {
+                        bgCtx.globalAlpha = 0.5 + Math.random() * 0.5; bgCtx.strokeStyle = '#ffffff'; bgCtx.lineWidth = 4 / zoomDiv;
+                        for (let b = 0; b < 3; b++) {
+                            bgCtx.beginPath(); bgCtx.moveTo((Math.random() - 0.5) * 15, 0);
+                            let segments = 6; let segLen = currentChronRadius / segments;
+                            for (let s = 1; s <= segments; s++) { let jitterX = (s === segments) ? 0 : (Math.random() - 0.5) * 45; let yPos = -s * segLen; bgCtx.lineTo(jitterX, yPos); }
+                            bgCtx.stroke();
+                        }
+                    }
+                    bgCtx.restore();
+                }
+                if (imgVisible) {
+                    bgCtx.save(); bgCtx.translate(x, y); bgCtx.rotate(angle); bgCtx.scale(0.85, 0.85); 
+                    let dynamicImg = getChronImg(chronLvl);
+                    if (dynamicImg.complete && dynamicImg.naturalWidth !== 0) { bgCtx.drawImage(dynamicImg, -(CHRON_SIZE/2), -(CHRON_SIZE/2), CHRON_SIZE, CHRON_SIZE); }
+                    bgCtx.restore();
+                }
+            }
+
+            if (showEntityAABB && (imgVisible || showGlobalAABB)) {
+                const cosA = Math.abs(Math.cos(angle)), sinA = Math.abs(Math.sin(angle));
+                const hw = (CHRON_SIZE / 2) * 0.85, hh = (CHRON_SIZE / 2) * 0.85;
+                const ex = hw * cosA + hh * sinA, ey = hw * sinA + hh * cosA;
+                bgCtx.save(); bgCtx.globalAlpha = imgVisible ? 1 : 0.2; bgCtx.strokeStyle = '#adff2f'; 
+                bgCtx.lineWidth = 2 / smoothZoom; bgCtx.strokeRect(x - ex, y - ey, ex * 2, ey * 2); bgCtx.restore();
+            }
+
+
+            if (chronPlacedInRing >= chronCapacity) {
+                currentChronRadius += 80; 
+                chronCapacity = Math.max(1, Math.floor((2 * Math.PI * currentChronRadius) / CHRON_SPACING));
+                chronPlacedInRing = 0;
+            }
+        }
+        
+if (chronCount > 0) nextStartRadius = currentChronRadius + (chronPlacedInRing > 0 ? 100 : 25);
+
+        let currentChumRadius = nextStartRadius;
+        let chumCapacity = Math.max(1, Math.floor((2 * Math.PI * currentChumRadius) / CHUM_SPACING));
+        let chumsPlacedInRing = 0;
+        
+        let chumRingDelay = 16;
+        let chumSnappedOrbit = 0;
+        let chumSnappedBounce = 0;
+
+        for (let i = 0; i < chumCount; i++) {
+            if (chumsPlacedInRing === 0) {
+                let zPenalty = Math.max(0, (1 - smoothZoom) * 10);
+                let radiusPenalty = Math.max(0, (currentChumRadius - 300) * 0.02);
+                chumRingDelay = Math.max(16, Math.min(250, 16 + zPenalty + radiusPenalty + renderCountPenalty));
+
+                let orbitCycle = gameTime % 30000;
+                chumSnappedOrbit = orbitCycle - (orbitCycle % chumRingDelay);
+                
+                let bounceCycle = gameTime; 
+                chumSnappedBounce = bounceCycle - (bounceCycle % chumRingDelay);
+                
+if (showLodText) {
+                    const textX = centerX + Math.cos(pointerAngle) * currentChumRadius;
+                    const textY = centerY + Math.sin(pointerAngle) * currentChumRadius;
+                    if (textX > worldLeft - 45 && textX < worldRight + 45 && textY > worldTop - 45 && textY < worldBottom + 125) {
+                        lodTextsToDraw.push({ x: textX, y: textY, text: chumRingDelay.toFixed(1) + "ms" });
+                    }
+                }
+            }
+
+            const baseAngle = (chumsPlacedInRing / chumCapacity) * (Math.PI * 2);
+            let angle = baseAngle - ((chumSnappedOrbit / 30000) * Math.PI * 2); 
+
+            const x = centerX + Math.sin(angle) * currentChumRadius;
+            const y = centerY - Math.cos(angle) * currentChumRadius;
+
+            chumsPlacedInRing++;
+            
+            let bouncePhase = (chumSnappedBounce / 400) + (baseAngle * 8);
+            let absSin = Math.abs(Math.sin(bouncePhase));
+            let bounceHeight = 45 * absSin;
+
+            let squash = Math.max(0, 1 - (absSin * 3)); 
+            let absCos = Math.abs(Math.cos(bouncePhase));
+            let stretch = absCos * Math.min(1, absSin * 4); 
+
+            let scaleModY = 1.0 - (0.15 * squash) + (0.1 * stretch);
+            let scaleModX = 1.0 + (0.15 * squash) - (0.08 * stretch);
+
+            let jumpIndex = Math.floor(bouncePhase / Math.PI);
+            let getJumpRoll = (jIdx) => {
+                let hash = Math.sin(jIdx * 12.9898 + i * 78.233) * 43758.5453;
+                return hash - Math.floor(hash);
+            };
+
+            let currentRoll = getJumpRoll(jumpIndex);
+            let previousRoll = getJumpRoll(jumpIndex - 1);
+            let isFlipJump = (currentRoll < 0.15) && !(previousRoll < 0.15);
+
+            let finalAngle = angle;
+            let finalCenterX = x + Math.sin(angle) * bounceHeight;
+            let finalCenterY = y - Math.cos(angle) * bounceHeight;
+
+            if (isFlipJump) {
+                let progress = (bouncePhase % Math.PI) / Math.PI; 
+                let smoothedProgress = progress * progress * (3 - 2 * progress);
+                finalAngle += smoothedProgress * Math.PI * 2;
+            }
+
+            finalCenterX += Math.sin(angle) * (CHUM_SIZE / 2);
+            finalCenterY -= Math.cos(angle) * (CHUM_SIZE / 2);
+
+            const isChumVisible = checkCull(finalCenterX, finalCenterY, CHUM_SIZE, CHUM_SIZE, finalAngle, 0.85 * scaleModX, 0.85 * scaleModY, worldLeft, worldRight, worldTop, worldBottom);
+            if (isChumVisible) {
+                window.currentFrameEntities++;
+                bgCtx.save(); bgCtx.translate(x, y); bgCtx.rotate(angle); bgCtx.translate(0, -bounceHeight); 
+                if (isFlipJump) {
+                    let progress = (bouncePhase % Math.PI) / Math.PI; let smoothedProgress = progress * progress * (3 - 2 * progress);
+                    bgCtx.translate(0, -CHUM_SIZE / 2); bgCtx.rotate(smoothedProgress * Math.PI * 2); bgCtx.translate(0, CHUM_SIZE / 2);
+                }
+                bgCtx.scale(-0.85 * scaleModX, 0.85 * scaleModY);
+                let chumLvl = chumLevels[i] || 1; let dynamicImg = getChumImg(chumLvl);
+                if (dynamicImg.complete && dynamicImg.naturalWidth !== 0) { bgCtx.drawImage(dynamicImg, -(CHUM_SIZE/2), -CHUM_SIZE, CHUM_SIZE, CHUM_SIZE); }
+                bgCtx.restore();
+            }
+
+            if (showEntityAABB && (isChumVisible || showGlobalAABB)) {
+                const cosA = Math.abs(Math.cos(finalAngle)), sinA = Math.abs(Math.sin(finalAngle));
+                const hw = (CHUM_SIZE / 2) * 0.85 * scaleModX, hh = (CHUM_SIZE / 2) * 0.85 * scaleModY;
+                const ex = hw * cosA + hh * sinA, ey = hw * sinA + hh * cosA;
+                bgCtx.save(); 
+                bgCtx.globalAlpha = isChumVisible ? 1 : 0.2; 
+                bgCtx.strokeStyle = '#ff00ff';
+                bgCtx.lineWidth = 2 / smoothZoom; 
+                bgCtx.strokeRect(finalCenterX - ex, finalCenterY - ey, ex * 2, ey * 2); 
+                bgCtx.restore();
+            }
+
+            if (chumsPlacedInRing >= chumCapacity) {
+                currentChumRadius += 80;
+                chumCapacity = Math.max(1, Math.floor((2 * Math.PI * currentChumRadius) / CHUM_SPACING));
+                chumsPlacedInRing = 0;
+            }
+        }
+        
+if (chumCount > 0) nextStartRadius = currentChumRadius + (chumsPlacedInRing > 0 ? 160 : 70);
+
+        let currentJohnRadius = nextStartRadius; 
+        let johnCapacity = Math.max(1, Math.floor((2 * Math.PI * currentJohnRadius) / JOHN_SPACING)); 
+        let johnsPlacedInRing = 0;
+        let ringIndex = 0; 
+        
+        let johnRingDelay = 16;
+        let johnSnappedOrbit = 0;
+        let johnSnappedWave = 0;
+
+        for (let i = 0; i < johnCount; i++) {
+            if (johnsPlacedInRing === 0) {
+                let zPenalty = Math.max(0, (1 - smoothZoom) * 20);
+                let radiusPenalty = Math.max(0, (currentJohnRadius - 200) * 0.02);
+                johnRingDelay = Math.max(16, Math.min(250, 16 + zPenalty + radiusPenalty + renderCountPenalty));
+
+                let orbitCycle = gameTime % 15000;
+                johnSnappedOrbit = orbitCycle - (orbitCycle % johnRingDelay);
+                
+                let waveCycle = gameTime % 942.477;
+                johnSnappedWave = waveCycle - (waveCycle % johnRingDelay);
+
+                if (showLodText) {
+                    const textX = centerX + Math.cos(pointerAngle) * currentJohnRadius;
+                    const textY = centerY + Math.sin(pointerAngle) * currentJohnRadius;
+                    if (textX > worldLeft - 100 && textX < worldRight + 100 && textY > worldTop - 100 && textY < worldBottom + 100) {
+                        lodTextsToDraw.push({ x: textX, y: textY, text: johnRingDelay.toFixed(1) + "ms" });
+                    }
+                }
+            }
+
+            const baseAngle = (johnsPlacedInRing / johnCapacity) * (Math.PI * 2); 
+            let angle = baseAngle + ((johnSnappedOrbit / 15000) * Math.PI * 2); 
+            
+            const x = centerX + Math.sin(angle) * currentJohnRadius;
+            const y = centerY - Math.cos(angle) * currentJohnRadius;
+            
+            johnsPlacedInRing++; 
+
+            const waveDir = (ringIndex % 2 === 0) ? 1 : -1;
+            const scale = 0.55 + (0.12 * Math.sin((johnSnappedWave / 300) * 2 + baseAngle * 5 * waveDir + ringIndex * Math.PI));
+
+            if (checkCull(x, y, JOHN_SIZE, JOHN_SIZE, angle, scale, scale, worldLeft, worldRight, worldTop, worldBottom)) {
+                window.currentFrameEntities++;
+
+            const isJohnVisible = checkCull(x, y, JOHN_SIZE, JOHN_SIZE, angle, scale, scale, worldLeft, worldRight, worldTop, worldBottom);
+            if (isJohnVisible) {
+                window.currentFrameEntities++;
+                bgCtx.save(); bgCtx.translate(x, y); bgCtx.rotate(angle); bgCtx.scale(scale, scale); 
+                if (imgJohn.complete && imgJohn.naturalWidth !== 0) { bgCtx.drawImage(imgJohn, -(JOHN_SIZE/2), -(JOHN_SIZE/2), JOHN_SIZE, JOHN_SIZE); }
+                bgCtx.restore();
+            }
+
+            if (showEntityAABB && (isJohnVisible || showGlobalAABB)) {
+                const cosA = Math.abs(Math.cos(angle)), sinA = Math.abs(Math.sin(angle));
+                const hw = (JOHN_SIZE / 2) * scale, hh = (JOHN_SIZE / 2) * scale;
+                const ex = hw * cosA + hh * sinA, ey = hw * sinA + hh * cosA;
+                bgCtx.save(); 
+                bgCtx.globalAlpha = isJohnVisible ? 1 : 0.2; 
+                bgCtx.strokeStyle = '#00ffff'; 
+                bgCtx.lineWidth = 2 / smoothZoom;
+                bgCtx.strokeRect(x - ex, y - ey, ex * 2, ey * 2);
+                bgCtx.restore();
+            }
+
+            }
+
+if (johnsPlacedInRing >= johnCapacity) {
+                currentJohnRadius += 100; 
+                johnCapacity = Math.max(1, Math.floor((2 * Math.PI * currentJohnRadius) / JOHN_SPACING));
+                johnsPlacedInRing = 0;
+                ringIndex++; 
+            }
+        }
+        
+        if (johnCount > 0) nextStartRadius = currentJohnRadius + (johnsPlacedInRing > 0 ? 60 : 0);
+
+        let finalArmyRadius = nextStartRadius;
+        let screenLimit = Math.min(window.innerWidth, window.innerHeight);
+        let baseAutoZoom = Math.min(1.0, (screenLimit * 0.85) / (finalArmyRadius * 2.2));
+        
+        if (baseAutoZoom < 1) baseAutoZoom = Math.pow(baseAutoZoom, 1.4);
+
+let oldSmoothZoom = smoothZoom;
+
+        let combinedTarget = freeCamEnabled ? targetZoom : (baseAutoZoom * targetZoom);
+        smoothZoom += (combinedTarget - smoothZoom) * (zoomSpeed * (dt / 16.666));
+        smoothZoom = Math.max(0.01, smoothZoom);
+        
+        if (freeCamEnabled && oldSmoothZoom !== smoothZoom) {
+            const ratio = smoothZoom / oldSmoothZoom;
+            const dX = window.gMouseX - centerX;
+            const dY = window.gMouseY - centerY;
+            
+            targetPanX = dX * (1 - ratio) + targetPanX * ratio;
+            targetPanY = dY * (1 - ratio) + targetPanY * ratio;
+            
+            if (isDraggingCam) {
+                dragCamStartX = window.gMouseX - targetPanX;
+                dragCamStartY = window.gMouseY - targetPanY;
+            }
+        }
+
+        if (typeof targetPanX !== 'undefined') {
+            camPanX = targetPanX; 
+            camPanY = targetPanY; 
+        }
+
+        if (showLodText && lodTextsToDraw.length > 0) {
+            bgCtx.save();
+            bgCtx.font = "900 20px Nunito";
+            bgCtx.textAlign = "center";
+            bgCtx.textBaseline = "middle";
+            
+            for (let i = 0; i < lodTextsToDraw.length; i++) {
+                let item = lodTextsToDraw[i];
+                const metrics = bgCtx.measureText(item.text);
+                const tw = metrics.width;
+                
+                bgCtx.fillStyle = "rgba(0, 0, 0, 0.8)";
+                bgCtx.beginPath();
+                bgCtx.roundRect(item.x - tw/2 - 8, item.y - 14, tw + 16, 28, 6);
+                bgCtx.fill();
+
+                bgCtx.fillStyle = "#ff6b6b";
+                bgCtx.fillText(item.text, item.x, item.y);
+            }
+            bgCtx.restore();
+        }
+
+        bgCtx.restore();
+
+        let squirrelVisualScale = smoothZoom; 
+        const xOffset = freeCamEnabled ? camPanX : 0;
+        const yOffset = freeCamEnabled ? camPanY : 0;
+        
+        document.getElementById('clicker-wrapper').style.transform = 
+            `translate(calc(-50% + ${xOffset}px), calc(-50% + ${yOffset}px)) scale(${squirrelVisualScale})`;
+
+        fgCtx.save();
+        if (freeCamEnabled) fgCtx.translate(camPanX, camPanY); 
+        fgCtx.translate(centerX, centerY);
+        fgCtx.scale(smoothZoom, smoothZoom);
+        fgCtx.translate(-centerX, -centerY);
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+            let p = particles[i];
+            p.vy += 0.7 * frameMultiplier; 
+            p.x += p.vx * frameMultiplier; 
+            p.y += p.vy * frameMultiplier;
+            if (p.vy > 0) p.opacity -= 0.045 * frameMultiplier;
+            p.rotation += p.vx * 4 * frameMultiplier;
+            p.life += frameMultiplier;
+            if (p.life < 4) { p.scale += 0.4 * frameMultiplier; } else { p.scale += (1.0 - p.scale) * 0.3 * frameMultiplier; }
+            let targetCtx = p.isAuto ? bgCtx : fgCtx;
+
+            if (smoothZoom < 0.3 && p.isAuto) continue;
+
+targetCtx.save(); targetCtx.globalAlpha = Math.max(0, p.opacity);
+            targetCtx.translate(p.x, p.y); targetCtx.rotate(p.rotation * Math.PI / 180);
+            targetCtx.scale(p.scale, p.scale); 
+            if (imgToken.complete && imgToken.naturalWidth !== 0) {
+                targetCtx.drawImage(imgToken, -p.size/2, -p.size/2, p.size, p.size);
+            }
+            targetCtx.restore();
+            if (p.opacity <= 0) particles.splice(i, 1);
+        }
+
+        for (let i = popups.length - 1; i >= 0; i--) {
+            let p = popups[i];
+            p.y += p.vy * frameMultiplier; 
+            p.opacity -= 0.015 * frameMultiplier; 
+            p.life += frameMultiplier;
+            p.scale = Math.min(1.5, p.scale + 0.2 * frameMultiplier); 
+            if (p.life > 10) p.scale -= 0.05 * frameMultiplier; 
+            
+            if (smoothZoom < 0.3) { popups.splice(i, 1); continue; }
+
+            fgCtx.save(); 
+            fgCtx.globalAlpha = Math.max(0, p.opacity);
+            fgCtx.translate(p.x, p.y); 
+            fgCtx.scale(p.scale, p.scale);
+            
+            const cachedImg = getCachedText(p.text, p.color || '#ffdf00');
+            fgCtx.drawImage(cachedImg, -cachedImg.width / 2, -cachedImg.height / 2);
+            
+            fgCtx.restore();
+            
+            if (p.opacity <= 0) popups.splice(i, 1);
+        }
+        
+        fgCtx.restore();
+        
+        if (activeBooster) {
+            const remaining = activeBooster.end - realNowTime;
+            if (remaining <= 0) {
+                currentMultiplier = 1; 
+                activeBooster.el.remove(); 
+                activeBooster = null; 
+                updateDisplay(true);
+            } else { activeBooster.overlay.style.height = `${100 - ((remaining / activeBooster.duration) * 100)}%`; }
+        }
+
+        if (activeFrenzy) {
+            const remaining = activeFrenzy.end - realNowTime;
+            if (remaining <= 0) {
+                frenzyMultiplier = 1; 
+                activeFrenzy.el.remove(); 
+                activeFrenzy = null; 
+                document.body.classList.remove('frenzy-active'); 
+                targetAnimSpeed = 1.0; 
+                updateDisplay(true);
+            } else { activeFrenzy.overlay.style.height = `${100 - ((remaining / activeFrenzy.duration) * 100)}%`; }
+        }
+
+        drawArmyCanvases();
+
+        fpsFrames++;
+        if (perfNow - fpsLastTime >= 500) {
+            currentFps = Math.round((fpsFrames * 1000) / (perfNow - fpsLastTime));
+            fpsFrames = 0;
+            fpsLastTime = perfNow;
+            
+            if (showFpsCounter) {
+                const fpsEl = document.getElementById('fps-value');
+                if (fpsEl) {
+                    fpsEl.innerText = currentFps;
+                    if (currentFps >= 50) fpsEl.style.color = '#2ecc71'; 
+                    else if (currentFps >= 30) fpsEl.style.color = '#f1c40f'; 
+                    else fpsEl.style.color = '#e74c3c'; 
+                }
+            }
+        }
+        window.lastFrameEntities = window.currentFrameEntities;
+        
+        requestAnimationFrame(animateEntities);
+    }
+
+    function saveGame() {
+        localStorage.setItem('sq_count', count);
+        localStorage.setItem('sq_j', johnCount);
+        localStorage.setItem('sq_c', chronCount);
+        localStorage.setItem('sq_total', totalTokensEver);
+        localStorage.setItem('sq_achs', JSON.stringify(unlockedAchievements));
+        localStorage.setItem('sq_time', Date.now());
+        localStorage.setItem('sq_unspent', unspentAcorns);
+        localStorage.setItem('sq_off_lvl', offlineUpgradeLevel);
+        localStorage.setItem('sq_acorns', goldenAcorns);
+        localStorage.setItem('sq_order', JSON.stringify(buildingOrder)); 
+        localStorage.setItem('sq_show_fps', showFpsCounter);
+
+        localStorage.setItem('sq_chum', chumCount);
+        localStorage.setItem('sq_chum_lvls', JSON.stringify(chumLevels));
+        
+        localStorage.setItem('sq_chron_lvls', JSON.stringify(chronLevels));
+        localStorage.setItem('sq_seen_level_tut', hasSeenLevelTut);
+    }
+
+    function loadGame() {
+        const getNum = (key, def = 0) => { let v = localStorage.getItem(key); return (v !== null && !isNaN(v)) ? parseFloat(v) : def; };
+        count = getNum('sq_count', 0);
+        johnCount = getNum('sq_j', 0);
+        chronCount = getNum('sq_c', 0);
+        totalTokensEver = getNum('sq_total', 0);
+        goldenAcorns = getNum('sq_acorns', 0);
+        unspentAcorns = getNum('sq_unspent', 0);
+        offlineUpgradeLevel = getNum('sq_off_lvl', 0);
+
+        chumCount = getNum('sq_chum', 0);
+        try { chumLevels = JSON.parse(localStorage.getItem('sq_chum_lvls')) || []; } catch(e) { chumLevels = []; }
+        while(chumLevels.length < chumCount) chumLevels.push(1);
+        while(chumLevels.length > chumCount) chumLevels.pop();
+
+        cursorSize = parseInt(localStorage.getItem('sq_cur_size')) || 32;
+        document.getElementById('cursor-size').value = cursorSize;
+
+        const savedCustomCur = localStorage.getItem('sq_use_custom_cur');
+        let preferredCustomCursor = savedCustomCur !== null ? savedCustomCur === 'true' : false;
+        document.getElementById('use-custom-cursor').checked = preferredCustomCursor;
+        document.getElementById('cursor-size').disabled = !preferredCustomCursor;
+
+        const savedFps = localStorage.getItem('sq_show_fps');
+        showFpsCounter = savedFps !== null ? savedFps === 'true' : true;
+        document.getElementById('show-fps-setting').checked = showFpsCounter;
+        if(document.getElementById('fps-counter')) document.getElementById('fps-counter').style.display = showFpsCounter ? 'flex' : 'none';
+
+        hasSeenLevelTut = localStorage.getItem('sq_seen_level_tut') === 'true' || localStorage.getItem('sq_seen_chron_tut') === 'true';            
+        try { chronLevels = JSON.parse(localStorage.getItem('sq_chron_lvls')) || []; } catch(e) { chronLevels = []; }
+        while(chronLevels.length < chronCount) chronLevels.push(1);
+        while(chronLevels.length > chronCount) chronLevels.pop();
+
+try { unlockedAchievements = JSON.parse(localStorage.getItem('sq_achs')) || []; } catch(e) { unlockedAchievements = []; }
+        if (unlockedAchievements.includes('ach_cps')) cpsAchieved = true;        try { buildingOrder = JSON.parse(localStorage.getItem('sq_order')) || []; } catch(e) { buildingOrder = []; }
+        if (buildingOrder.length === 0) {
+            if (johnCount > 0) buildingOrder.push('john');
+            if (chronCount > 0) buildingOrder.push('chron');
+        }
+        const savedLastTime = localStorage.getItem('sq_time'); 
+        if (savedLastTime !== null && (johnCount > 0 || chronCount > 0 || chumCount > 0)) {
+            const offlineMs = Date.now() - parseInt(savedLastTime);
+            if (offlineMs > 10000 && offlineUpgradeLevel > 0) {
+                const offlineTokens = (getTotalPassiveTPS() * getPrestigeMultiplier()) * (offlineUpgradeLevel * 0.05) * (offlineMs / 1000);
+                count += offlineTokens; totalTokensEver += offlineTokens;
+                setTimeout(() => { showToast("Offline Progress", `At ${Math.round((offlineUpgradeLevel * 0.05) * 100)}% efficiency, your team collected <b>${Math.floor(offlineTokens)}</b> tokens!`); }, 1000);
+            }
+        }
+        updateDisplay(true);
+        updateArmyVisibility();
+    }
+
+    function checkAchievements() {
+        achievementsList.forEach(ach => {
+            let unlocked = false;
+if (ach.req && totalTokensEver >= ach.req) unlocked = true;
+            if (ach.reqJohn && johnCount >= ach.reqJohn) unlocked = true;
+            if (ach.reqChron && chronCount >= ach.reqChron) unlocked = true;
+            if (ach.reqChum && chumCount >= ach.reqChum) unlocked = true;
+            if (unlocked && !unlockedAchievements.includes(ach.id)) {
+                unlockedAchievements.push(ach.id);
+                showToast("Achievement Unlocked!", ach.title ? `<b>${ach.title}</b> - ${ach.desc}` : ach.desc);
+                renderAchievements();
+            }
+        });
+    }
+
+    function showToast(title, desc) {
+        const sidebarClosed = document.body.classList.contains('sidebar-closed');
+        const armyClosed = document.body.classList.contains('army-closed');
+        const leftWidth = sidebarClosed ? 0 : 250;
+        const rightWidth = armyClosed ? 0 : 350;
+        const availableGap = window.innerWidth - leftWidth - rightWidth;
+
+        if (availableGap < 450) {
+            const existingToast = document.querySelector('.toast');
+            if (existingToast) return;
+        }
+
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        toast.className = 'toast';
+        toast.innerHTML = `<h4>${title}</h4><p>${desc}</p>`;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            if (toast.parentElement) toast.remove();
+        }, 5000);
+    }
+
+    function openModal(panelId) { 
+        closeModals(); 
+        document.getElementById('modal-overlay').classList.add('active'); 
+        document.getElementById(panelId).classList.add('open'); 
+        if (panelId === 'achievements-panel') renderAchievements(); 
+    }
+
+    function closeModals() { 
+        document.getElementById('modal-overlay').classList.remove('active'); 
+        document.getElementById('achievements-panel').classList.remove('open'); 
+        document.getElementById('settings-panel').classList.remove('open'); 
+        document.getElementById('ascension-panel').classList.remove('open'); 
+        document.getElementById('debug-panel').classList.remove('open'); 
+        document.getElementById('tutorial-panel').classList.remove('open'); 
+        document.getElementById('upgrade-panel').classList.remove('open'); 
+        clearInterval(tutAnimInterval);
+    }
+
+    function openDebugMenu() {
+        document.getElementById('debug-tokens').value = Math.floor(count);
+        document.getElementById('debug-acorns').value = goldenAcorns;
+        document.getElementById('debug-johns').value = johnCount;
+        document.getElementById('debug-chrons').value = chronCount;
+        document.getElementById('debug-chums').value = chumCount;
+        document.getElementById('debug-free-shop').checked = freeShopEnabled;
+        document.getElementById('debug-lod-text').checked = showLodText;
+        document.getElementById('debug-free-cam').checked = freeCamEnabled;
+        document.getElementById('debug-cull-box').checked = showCullBox;
+        document.getElementById('debug-aabb').checked = showEntityAABB;
+        document.getElementById('debug-aabb-global').checked = showGlobalAABB;
+        openModal('debug-panel');
+    }
+
+    function applyDebug() {
+        freeShopEnabled = document.getElementById('debug-free-shop').checked;
+        showLodText = document.getElementById('debug-lod-text').checked;
+        
+        let wasFreeCam = freeCamEnabled;
+        freeCamEnabled = document.getElementById('debug-free-cam').checked;
+
+        let newShowCullBox = document.getElementById('debug-cull-box').checked;
+        if (newShowCullBox && !showCullBox) {
+            cullLockX = camPanX;
+            cullLockY = camPanY;
+            cullLockZoom = smoothZoom;
+        }
+        showCullBox = newShowCullBox;
+        showEntityAABB = document.getElementById('debug-aabb').checked;
+        showGlobalAABB = document.getElementById('debug-aabb-global').checked;
+
+        if (freeCamEnabled && !wasFreeCam) {
+            targetZoom = smoothZoom;
+            document.getElementById('canvas-zoom').value = targetZoom;
+        } else if (!freeCamEnabled && wasFreeCam) { 
+            camPanX = 0; 
+            camPanY = 0; 
+            targetPanX = 0;
+            targetPanY = 0;
+            targetZoom = 1;
+            document.getElementById('canvas-zoom').value = 1; 
+        }
+        let newTokens = parseFloat(document.getElementById('debug-tokens').value) || 0;
+        let newAcorns = parseInt(document.getElementById('debug-acorns').value) || 0;
+        let newJohns = parseInt(document.getElementById('debug-johns').value) || 0;
+        let newChrons = parseInt(document.getElementById('debug-chrons').value) || 0;
+        let newChums = parseInt(document.getElementById('debug-chums').value) || 0;
+
+        count = newTokens;
+        totalTokensEver = Math.max(totalTokensEver, count); 
+        
+        let acornDiff = newAcorns - goldenAcorns;
+        goldenAcorns = newAcorns;
+        unspentAcorns = Math.max(0, unspentAcorns + acornDiff); 
+
+johnCount = newJohns;
+        chronCount = newChrons;
+        chumCount = newChums;
+
+        while(chronLevels.length < chronCount) chronLevels.push(1);
+        while(chronLevels.length > chronCount) chronLevels.pop();
+
+        while(chumLevels.length < chumCount) chumLevels.push(1);
+        while(chumLevels.length > chumCount) chumLevels.pop();
+
+        if(johnCount > 0 && !buildingOrder.includes('john')) buildingOrder.push('john');
+        if(chronCount > 0 && !buildingOrder.includes('chron')) buildingOrder.push('chron');
+        if(chumCount > 0 && !buildingOrder.includes('chum')) buildingOrder.push('chum');
+        
+        if (johnCount > 0) syncArmyCount('john', johnCount);
+        else if (buildingData['john']) { 
+            document.getElementById('rowCanvas-john')?.remove();
+            delete buildingData['john'];
+        }
+        
+        if (chronCount > 0) syncArmyCount('chron', chronCount);
+        else if (buildingData['chron']) { 
+            document.getElementById('rowCanvas-chron')?.remove();
+            delete buildingData['chron'];
+        }
+
+        if (chumCount > 0) syncArmyCount('chum', chumCount);
+        else if (buildingData['chum']) { 
+            document.getElementById('rowCanvas-chum')?.remove();
+            delete buildingData['chum'];
+        }
+
+        saveGame();
+        updateDisplay(true);
+        updateArmyVisibility();
+        closeModals();
+        showToast("🛠️ Debug Applied", "Game state forcefully overwritten!");
+    }
+
+    function renderAchievements() {
+        const list = document.getElementById('achievements-list'); list.innerHTML = '';
+        achievementsList.forEach(ach => {
+            const isUnlocked = unlockedAchievements.includes(ach.id);
+            list.innerHTML += `
+                <div class="ach-item ${isUnlocked ? 'unlocked' : ''}">
+<img src="icon/achieve/${ach.icon}" class="ach-icon" onerror="this.src='main/unkown.png'" draggable="false">                    <div class="ach-text-content">
+                        <h4>${ach.title}</h4>
+                        <p>${ach.desc}</p>
+                    </div>
+                </div>`;
+        });
+    }
+
+function resetProgress() {
+        if (confirm("Are you sure you want to completely reset ALL your progress? This cannot be undone!")) {
+            saveGame = function() {}; 
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    function handleSquirrelClick(e) {
+        if (e.cancelable) e.preventDefault(); 
+        if (e.type === 'mousedown' && e.button !== 0) return; 
+        if (e.touches && e.touches.length > 1) return;
+        playClickSound();
+
+        let clientX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+        let clientY = e.clientY || (e.touches && e.touches[0].clientY) || 0;
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+        const worldX = (clientX - camPanX - centerX) / smoothZoom + centerX;
+        const worldY = (clientY - camPanY - centerY) / smoothZoom + centerY;
+const earned = 1 * currentMultiplier * frenzyMultiplier * getPrestigeMultiplier();
+        count += earned; totalTokensEver += earned;
+        checkAchievements();
+
+        if (!cpsAchieved) {
+            const nowTime = Date.now();
+            recentClicks.push(nowTime);
+            recentClicks = recentClicks.filter(t => nowTime - t <= 1000);
+            
+            if (recentClicks.length >= 12) {
+                cpsAchieved = true; 
+                if (!unlockedAchievements.includes('ach_cps')) {
+                    unlockedAchievements.push('ach_cps');
+                    showToast("Achievement Unlocked!", "<b>Hyperactive</b> - Clicked 12 times in one second.");
+                    renderAchievements();
+                    saveGame();
+                }
+            }
+        }
+        createMiniSquirrel(worldX, worldY); spawnPopup(worldX, worldY, earned);
+        bumpText(); updateDisplay(); saveGame();
+    }
+
+    clickerImage.addEventListener('mousedown', handleSquirrelClick);
+    clickerImage.addEventListener('touchstart', handleSquirrelClick, { passive: false });
+    document.getElementById('buy-x2-btn').addEventListener('click', () => activateBooster(2, freeShopEnabled ? 0 : 500, 60000));
+    document.getElementById('buy-x5-btn').addEventListener('click', () => activateBooster(5, freeShopEnabled ? 0 : 5000, 30000));
+    
+    let lastTime = Date.now();
+    setInterval(() => {
+        const now = Date.now(); 
+        const deltaTime = (now - lastTime) / 1000; 
+        lastTime = now;
+        
+        if (johnCount > 0 || chronCount > 0 || chumCount > 0) {
+            const tokensGenerated = getTotalPassiveTPS() * currentMultiplier * frenzyMultiplier * getPrestigeMultiplier() * deltaTime;
+            count += tokensGenerated; 
+            totalTokensEver += tokensGenerated;
+            
+            if (!document.hidden) {
+                checkAchievements(); 
+                updateDisplay();
+            }
+        }
+    }, 100);
+
+    document.getElementById('ascend-btn').addEventListener('click', () => {
+        const totalPrestigePossible = Math.floor(Math.cbrt(totalTokensEver / 1000000000000));
+        const pendingAcorns = Math.max(0, totalPrestigePossible - goldenAcorns);
+        if (pendingAcorns === 0) { alert("You need at least 1 Trillion lifetime tokens to earn a Golden Acorn!"); return; }
+        if (confirm(`Are you sure you want to Ascend?\n\nYou will reset your current tokens and helpers, but gain ${pendingAcorns} Golden Acorns!\nEach acorn gives a permanent +5% boost to ALL production.`)) {
+            goldenAcorns += pendingAcorns; unspentAcorns += pendingAcorns;
+            count = 0; johnCount = 0; chronCount = 0;
+            buildingOrder = []; 
+            chronLevels = [];
+            chumCount = 0; chumLevels = [];
+            hasSeenLevelTut = false;
+            
+            document.querySelectorAll('.rowCanvas').forEach(el => el.remove());
+            
+            for (let key in buildingData) delete buildingData[key]; 
+            if (activeBooster && activeBooster.el) activeBooster.el.remove();
+            if (activeFrenzy && activeFrenzy.el) activeFrenzy.el.remove();
+            activeBooster = null; activeFrenzy = null;
+            document.body.classList.remove('frenzy-active');
+            targetAnimSpeed = 1.0; currentAnimSpeed = 1.0;
+            
+            saveGame(); 
+            updateDisplay(true);
+            updateArmyVisibility();
+            
+            showToast("✨ Ascended!", `You have been reborn with ${goldenAcorns} Golden Acorns.`);
+        }
+    });
+
+    document.getElementById('buy-offline-btn').addEventListener('click', () => {
+        const cost = freeShopEnabled ? 0 : offlineUpgradeLevel + 1;
+        if (unspentAcorns >= cost) {
+            unspentAcorns -= cost; offlineUpgradeLevel++;
+            saveGame(); updateDisplay(true);
+        }
+    });
+
+    function toggleSidebar() {
+        const sidebar = document.getElementById('sidebar'); 
+        const btn = document.getElementById('toggle-sidebar-btn');
+        if (sidebar.classList.contains('closed')) {
+            sidebar.classList.remove('closed'); 
+            document.body.classList.remove('sidebar-closed'); 
+            btn.innerText = "> Close Shop";
+            
+            if (window.innerWidth <= 900) {
+                document.getElementById('building-sidebar').classList.add('closed');
+                document.body.classList.add('army-closed');
+                document.getElementById('toggle-army-btn').innerText = "< Open Army";
+            }
+        } else { 
+            sidebar.classList.add('closed'); 
+            document.body.classList.add('sidebar-closed'); 
+            btn.innerText = "< Open Shop"; 
+        }
+    }
+
+    function toggleArmy() {
+        const sidebar = document.getElementById('building-sidebar'); 
+        const btn = document.getElementById('toggle-army-btn');
+        if (sidebar.classList.contains('closed')) {
+            sidebar.classList.remove('closed'); 
+            document.body.classList.remove('army-closed'); 
+            btn.innerText = "Close Army >";
+            
+            if (window.innerWidth <= 900) {
+                document.getElementById('sidebar').classList.add('closed');
+                document.body.classList.add('sidebar-closed');
+                document.getElementById('toggle-sidebar-btn').innerText = "< Open Shop";
+            }
+        } else { 
+            sidebar.classList.add('closed'); 
+            document.body.classList.add('army-closed'); 
+            btn.innerText = "< Open Army"; 
+        }
+    }
+    document.addEventListener('contextmenu', event => event.preventDefault());
+
+let gameStarted = false;
+
+    function initApp() {
+        gameStarted = true;
+        loadGame();
+        buildingOrder.forEach(id => {
+            if (id === 'john' && johnCount > 0) syncArmyCount('john', johnCount);
+            if (id === 'chron' && chronCount > 0) syncArmyCount('chron', chronCount);
+            if (id === 'chum' && chumCount > 0) syncArmyCount('chum', chumCount);
+        });
+
+        useCustomCursor = document.getElementById('use-custom-cursor').checked;
+        updateCursorSize(cursorSize);
+
+requestAnimationFrame(animateEntities);
+        setInterval(() => saveGame(), 5000);
+    }
+
+setInterval(() => {
+        if (gameStarted) {
+            document.title = `${formatNumberWords(Math.floor(count))} Tokens - Squirrel Clicker`;
+        }
+    }, 2000);
+
+    window.addEventListener('mousemove', (e) => {
+        if (!useCustomCursor) return;
+        const cursorDiv = document.getElementById('custom-cursor-div');
+        if (!cursorDiv || cursorsLoaded < 2) return;
+
+        cursorDiv.style.opacity = '1';
+
+        const isHoveringClickable = e.target.closest('button, a, .shop-btn, .golden-squirrel, #c, .close-btn, .danger-btn, #reset-zoom-btn, input, label, .toggle-option');
+        
+        let isHoveringSoldierOrScroll = false;
+
+        if (e.target.classList.contains('rowCanvas')) {
+            for (let id in buildingData) {
+                let row = buildingData[id];
+                if (row.canvas === e.target) {
+                    if (row.mouseY > 108) {
+                        isHoveringSoldierOrScroll = true;
+                        break;
+                    }
+                    
+                    const ENT_SPACING = 35;
+                    for (let k = row.renderOrder.length - 1; k >= 0; k--) {
+                        let i = row.renderOrder[k].index;
+                        let ent = row.renderOrder[k].ent;
+                        let dx = 15 + (i * ENT_SPACING) + ent.offsetX - row.scrollX;
+                        let dy = ent.offsetY + (ent.jumpY || 0);
+                        if (row.mouseX >= dx && row.mouseX <= dx + 45 && row.mouseY >= dy && row.mouseY <= dy + 45) { 
+                            isHoveringSoldierOrScroll = true; 
+                            break; 
+                        }
+                    }
+                    break; 
+                }
+            }
+        }
+        
+        if (isHoveringClickable || activeDragId || isHoveringSoldierOrScroll) {
+            cursorDiv.style.backgroundImage = `url("${cursorImages['pointer'].src}")`;
+            cursorDiv.style.transform = `translate(calc(${e.clientX}px - 35%), ${e.clientY}px)`;
+        } else {
+            cursorDiv.style.backgroundImage = `url("${cursorImages['default'].src}")`;
+            cursorDiv.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+        }
+    });
+
+    document.documentElement.addEventListener('mouseleave', () => {
+        const cursorDiv = document.getElementById('custom-cursor-div');
+        if (cursorDiv) cursorDiv.style.opacity = '0';
+    });
+
+    window.addEventListener('wheel', (e) => {
+        if (document.getElementById('modal-overlay').classList.contains('active')) {
+            return;
+        }
+
+        if (e.target.closest('#sidebar, #building-sidebar')) {
+            return;
+        }
+
+        e.preventDefault();
+        const zoomFactor = 1.15;
+
+        if (e.deltaY < 0) targetZoom *= zoomFactor; else targetZoom /= zoomFactor;
+        targetZoom = Math.max(0.005, Math.min(targetZoom, 20));
+
+        document.getElementById('canvas-zoom').value = targetZoom;
+    }, { passive: false });
+
+    let initialPinchDist = 0;
+    let initialPinchZoom = 1;
+
+    window.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            if (e.cancelable) e.preventDefault();
+            initialPinchDist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+            initialPinchZoom = targetZoom;
+        }
+    }, { passive: false });
+
+window.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && initialPinchDist > 0) {
+            if (e.cancelable) e.preventDefault();
+            const currentDist = Math.hypot(e.touches[1].clientX - e.touches[0].clientX, e.touches[1].clientY - e.touches[0].clientY);
+            targetZoom = Math.max(0.005, Math.min(initialPinchZoom * (currentDist / initialPinchDist), 20));
+            document.getElementById('canvas-zoom').value = targetZoom;
+            
+            window.gMouseX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            window.gMouseY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        }
+    }, { passive: false });
+
+
+    window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && (e.key === '=' || e.key === '-' || e.key === '+' || e.key === '0')) {
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('mousedown', (e) => {
+        if (document.getElementById('modal-overlay').classList.contains('active')) return;
+        if (freeCamEnabled && !e.target.closest('button, #sidebar, #building-sidebar, #c, .toast, #modal-overlay, .golden-squirrel, input, label, .toggle-option')) {
+            isDraggingCam = true;
+            dragCamStartX = e.clientX - targetPanX;
+            dragCamStartY = e.clientY - targetPanY;
+        }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        if (isDraggingCam) {
+            targetPanX = e.clientX - dragCamStartX;
+            targetPanY = e.clientY - dragCamStartY;
+        }
+    });
+
+    window.addEventListener('mouseup', () => isDraggingCam = false);
+
+    document.getElementById('reset-zoom-btn').addEventListener('click', () => { 
+        targetZoom = 1; 
+        targetPanX = 0; 
+        targetPanY = 0; 
+    });
+
+    document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+            checkAchievements();
+            updateDisplay(true);
+        }
+    });
+
+const assetsToPreload = [
+        'main/unkown.png', 'main/squirrel.png', 'main/golden_squirrel.png', 'main/temp_token.png',
+        'main/squirrel.ico', 
+        'ent/john.png', 'bg/bg_john.png',
+        'ent/chron.png', 'ent/chron_1.png', 'ent/chron_2.png', 'ent/chron_3.png', 'bg/bg_chron.png',
+        'ent/chum_1.png', 'ent/chum_2.png', 'ent/chum_3.png', 'bg/bg_chum.png',
+        'icon/troph_icon.png', 'icon/sett_icon.png', 'icon/x2_icon.png', 'icon/x5_icon.png',
+        ...achievementsList.filter(ach => ach.icon).map(ach => `icon/achieve/${ach.icon}`),
+        
+        { type: 'font', spec: '16px Nunito' } 
+    ];
+
+
+function preloadAssets(onComplete) {
+        let loaded = 0;
+        let failed = 0;
+        let processed = 0;
+        const total = assetsToPreload.length;
+        const bar = document.getElementById('loading-bar');
+        const text = document.getElementById('loading-text');
+
+        if (total === 0) return onComplete();
+
+const handleProgress = (isError, src) => {
+            if (isError) {
+                failed++;
+                const errorDiv = document.getElementById('loading-errors');
+                if (errorDiv) errorDiv.innerHTML += `Failed Loading: '${src}'<br>`;
+            } else {
+                loaded++;
+            }
+            processed++;
+            
+            const percent = Math.floor((loaded / total) * 100);
+            if (bar) {
+                bar.style.width = percent + '%';
+                if (isError) bar.style.backgroundColor = '#e74c3c'; 
+            }
+            if (text) text.innerText = percent + '%';
+            
+            if (processed === total) {
+                console.log(`Total Assets: ${total}\nLoaded Assets: ${loaded}\nFailed Assets: ${failed}`);
+                
+                const loader = document.getElementById('loading-screen');
+                const finishLoading = () => {
+                    if (loader) {
+                        loader.style.opacity = '0';
+                        setTimeout(() => {
+                            loader.style.display = 'none';
+                            onComplete();
+                        }, 500);
+                    } else {
+                        onComplete();
+                    }
+                };
+
+                if (failed > 0) {
+                    const dismissBtn = document.getElementById('dismiss-loading-btn');
+                    if (dismissBtn) {
+                        dismissBtn.style.display = 'block';
+                        dismissBtn.onclick = finishLoading;
+                    } else {
+                        finishLoading(); 
+                    }
+                } else {
+                    setTimeout(finishLoading, 250);
+                }
+            }
+        };
+
+assetsToPreload.forEach(asset => {
+            if (typeof asset === 'string' || asset.type === 'image') {
+                const src = typeof asset === 'string' ? asset : asset.src;
+                const img = new Image();
+                img.onload = () => handleProgress(false, src);
+                img.onerror = () => handleProgress(true, src);
+                img.src = src;
+            } 
+            else if (asset.type === 'audio') {
+                const audio = new Audio();
+                audio.oncanplaythrough = () => handleProgress(false, asset.src);
+                audio.onerror = () => handleProgress(true, asset.src);
+                audio.src = asset.src;
+                audio.load();
+            } 
+            else if (asset.type === 'font') {
+                document.fonts.load(asset.spec).then((fonts) => {
+                    if (fonts.length > 0) {
+                        handleProgress(false, `Font: ${asset.spec}`);
+                    } else {
+                        handleProgress(true, `Font: ${asset.spec}`);
+                    }
+                }).catch(() => handleProgress(true, `Font: ${asset.spec}`));
+            }
+        });
+    }
+
+    preloadAssets(() => {
+        initApp();
+    });
+</script>
+</body>
+</html>
