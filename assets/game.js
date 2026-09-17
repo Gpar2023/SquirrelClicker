@@ -132,6 +132,7 @@
         { id: 'ach6', req: 1000000, icon: 'million.png', title: 'A Millionaire', desc: 'Collect 1,000,000 total tokens.' },
         { id: 'ach_chron_rev', reqChron: Math.floor((2 * Math.PI * 240) / 85), icon: 'chron_circle.png', title: 'A little better..', desc: 'Complete the first circle of Chronisters.' },
         { id: 'ach_chum_rev', reqChum: Math.floor((2 * Math.PI * 240) / 95), icon: 'chum_circle.png', title: 'Toad-ally nice', desc: 'Complete the first circle of Chumtoads.' },
+        { id: 'ach_pigeon_rev', icon: 'pigeon.png', title: 'Lord of the 7 Seas', desc: 'Complete the first circle of Mr Pigeons.' },
         { id: 'ach_john_rev', reqJohn: 1, icon: 'john.png', title: 'I think we\'re getting somewhere!..', desc: 'Recruit your very first John.' },
         { id: 'ach_cps', icon: 'cps_fast.png', title: 'Hyperactive', desc: 'Click the squirrel 12 times in a single second!' }
     ];
@@ -154,15 +155,32 @@
         updateDisplay(true);
     }
 
+    // Central configuration for adding/modifying characters
+    const characters = {
+        chron:  { name: 'Chronister', baseCost: 10,   costMult: 1.15, baseTPS: 1,  maxLvl: 3, icon: 'ent/chron.png',  bg: 'bg/bg_chron.png' },
+        chum:   { name: 'Chumtoad',   baseCost: 100,  costMult: 1.20, baseTPS: 5,  maxLvl: 3, icon: 'ent/chum_1.png', bg: 'bg/bg_chum.png' },
+        pigeon: { name: 'Mr Pigeon',  baseCost: 450,  costMult: 1.22, baseTPS: 12, maxLvl: 3, icon: 'ent/pigeon.png', bg: 'bg/bg_pigeon.png' },
+        john:   { name: 'John',       baseCost: 1000, costMult: 1.25, baseTPS: 25, maxLvl: 1, icon: 'ent/john.png',   bg: 'bg/bg_john.png' }
+    };
+
     let chronCount = 0;
     let chumCount = 0;
+    let pigeonCount = 0;
     let johnCount = 0;
     
     let displayCount = -1; 
-    let chronCost = 10;
-    let chumCost = 100;
-    let johnCost = 1000;
+    let chronCost = characters.chron.baseCost;
+    let chumCost = characters.chum.baseCost;
+    let pigeonCost = characters.pigeon.baseCost;
+    let johnCost = characters.john.baseCost;
+
+    let pigeonLevels = [];
     
+    let x2Bought = 0;
+    let x5Bought = 0;
+    let x2Cost = 500;
+    let x5Cost = 5000;
+
     let currentMultiplier = 1;
     let frenzyMultiplier = 1;
     let activeBooster = null;
@@ -178,7 +196,8 @@
     const MAX_LEVELS = {
         'john': 1,
         'chron': 3,
-        'chum': 3
+        'chum': 3,
+        'pigeon': 3
     };
 
     const chumImgCache = {};
@@ -211,6 +230,24 @@ let targetAnimSpeed = 1.0;
         localStorage.setItem('sq_show_fps', showFpsCounter);
     });
 
+    window.perfHidePigeons = localStorage.getItem('sq_hide_pigeons') === 'true';
+    window.perfHideArmy = localStorage.getItem('sq_hide_army') === 'true';
+    window.perfHideBeams = localStorage.getItem('sq_hide_beams') === 'true';
+
+    const bindPerfToggle = (id, key, globalVar) => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.checked = window[globalVar];
+            el.addEventListener('change', (e) => {
+                window[globalVar] = e.target.checked;
+                localStorage.setItem(key, e.target.checked);
+            });
+        }
+    };
+    bindPerfToggle('hide-army-setting', 'sq_hide_army', 'perfHideArmy');
+    bindPerfToggle('hide-pigeons-setting', 'sq_hide_pigeons', 'perfHidePigeons');
+    bindPerfToggle('hide-beams-setting', 'sq_hide_beams', 'perfHideBeams');
+
     const chronImgCache = {};
     function getChronImg(lvl) {
         if (!chronImgCache[lvl]) {
@@ -221,10 +258,11 @@ let targetAnimSpeed = 1.0;
     }
 
     function getTotalPassiveTPS() {
-        let chronTPS = chronLevels.reduce((sum, lvl) => sum + (lvl * 1), 0);
-        let chumTPS = chumLevels.reduce((sum, lvl) => sum + (lvl * 5), 0);
-        let johnTPS = johnCount * 25;
-        return chronTPS + chumTPS + johnTPS;
+        let chronTPS = chronLevels.reduce((sum, lvl) => sum + (lvl * characters.chron.baseTPS), 0);
+        let chumTPS = chumLevels.reduce((sum, lvl) => sum + (lvl * characters.chum.baseTPS), 0);
+        let pigeonTPS = pigeonLevels.reduce((sum, lvl) => sum + (lvl * characters.pigeon.baseTPS), 0);
+        let johnTPS = johnCount * characters.john.baseTPS;
+        return chronTPS + chumTPS + pigeonTPS + johnTPS;
     }
     
     const counterDisplay = document.getElementById('counter');
@@ -249,6 +287,18 @@ let particles = [];
     const imgJohn = new Image(); imgJohn.src = 'ent/john.png';
     const imgChron = new Image(); imgChron.src = 'ent/chron.png';
     const imgToken = new Image(); imgToken.src = 'main/temp_token.png';
+    const imgPigeon = new Image(); imgPigeon.src = 'ent/pigeon.png';
+    imgPigeon.onerror = function() { this.src = 'main/unkown.png'; };
+
+    const pigeonImgCache = {};
+    function getPigeonImg(lvl) {
+        if (!pigeonImgCache[lvl]) {
+            pigeonImgCache[lvl] = new Image();
+            pigeonImgCache[lvl].src = `ent/pigeon_${lvl}.png`;
+            pigeonImgCache[lvl].onerror = function() { this.src = imgPigeon.src || 'main/unkown.png'; };
+        }
+        return pigeonImgCache[lvl];
+    }
 
     document.getElementById('canvas-zoom').addEventListener('input', (e) => { targetZoom = parseFloat(e.target.value); });
 
@@ -332,13 +382,15 @@ if (currentFloor !== displayCount || forceUpdate) {
             counterDisplay.innerText = `${formatNumberWords(currentFloor)} Token${currentFloor !== 1 ? 's' : ''}`;
             displayCount = currentFloor;
 
-            chronCost = freeShopEnabled ? 0 : Math.ceil(10 * Math.pow(1.15, chronCount));
-            chumCost = freeShopEnabled ? 0 : Math.ceil(100 * Math.pow(1.20, chumCount));
-            johnCost = freeShopEnabled ? 0 : Math.ceil(1000 * Math.pow(1.25, johnCount));
+            chronCost = freeShopEnabled ? 0 : Math.ceil(characters.chron.baseCost * Math.pow(characters.chron.costMult, chronCount));
+            chumCost = freeShopEnabled ? 0 : Math.ceil(characters.chum.baseCost * Math.pow(characters.chum.costMult, chumCount));
+            pigeonCost = freeShopEnabled ? 0 : Math.ceil(characters.pigeon.baseCost * Math.pow(characters.pigeon.costMult, pigeonCount));
+            johnCost = freeShopEnabled ? 0 : Math.ceil(characters.john.baseCost * Math.pow(characters.john.costMult, johnCount));
 
-            let chronSell = Math.floor(Math.ceil(10 * Math.pow(1.15, Math.max(0, chronCount - 1))) * 0.5);
-            let chumSell = Math.floor(Math.ceil(100 * Math.pow(1.20, Math.max(0, chumCount - 1))) * 0.5);
-            let johnSell = Math.floor(Math.ceil(1000 * Math.pow(1.25, Math.max(0, johnCount - 1))) * 0.5);
+            let chronSell = Math.floor(Math.ceil(characters.chron.baseCost * Math.pow(characters.chron.costMult, Math.max(0, chronCount - 1))) * 0.5);
+            let chumSell = Math.floor(Math.ceil(characters.chum.baseCost * Math.pow(characters.chum.costMult, Math.max(0, chumCount - 1))) * 0.5);
+            let pigeonSell = Math.floor(Math.ceil(characters.pigeon.baseCost * Math.pow(characters.pigeon.costMult, Math.max(0, pigeonCount - 1))) * 0.5);
+            let johnSell = Math.floor(Math.ceil(characters.john.baseCost * Math.pow(characters.john.costMult, Math.max(0, johnCount - 1))) * 0.5);
 
 if (shopMode === 'buy') {
                 buyChronText.innerText = `Buy Chronister (${formatNumberWords(chronCost)})`;
@@ -346,6 +398,13 @@ if (shopMode === 'buy') {
 
                 document.getElementById('buy-chum-text').innerText = `Buy Chumtoad (${formatNumberWords(chumCost)})`;
                 document.getElementById('buy-chum-btn').disabled = count < chumCost;
+
+                const pigeonBtn = document.getElementById('buy-pigeon-btn');
+                const pigeonTxt = document.getElementById('buy-pigeon-text');
+                if (pigeonBtn && pigeonTxt) {
+                    pigeonTxt.innerText = `Buy Mr Pigeon (${formatNumberWords(pigeonCost)})`;
+                    pigeonBtn.disabled = count < pigeonCost;
+                }
                 
                 buyJohnText.innerText = `Buy John (${formatNumberWords(johnCost)})`;
                 buyJohnBtn.disabled = count < johnCost;
@@ -355,6 +414,13 @@ if (shopMode === 'buy') {
 
                 document.getElementById('buy-chum-text').innerText = `Sell Chumtoad (+${formatNumberWords(chumSell)})`;
                 document.getElementById('buy-chum-btn').disabled = chumCount <= 0;
+
+                const pigeonBtn = document.getElementById('buy-pigeon-btn');
+                const pigeonTxt = document.getElementById('buy-pigeon-text');
+                if (pigeonBtn && pigeonTxt) {
+                    pigeonTxt.innerText = `Sell Mr Pigeon (+${formatNumberWords(pigeonSell)})`;
+                    pigeonBtn.disabled = pigeonCount <= 0;
+                }
                 
                 buyJohnText.innerText = `Sell John (+${formatNumberWords(johnSell)})`;
                 buyJohnBtn.disabled = johnCount <= 0;
@@ -362,12 +428,17 @@ if (shopMode === 'buy') {
             
             document.getElementById('chron-owned').innerText = `[${chronCount}]`;
             document.getElementById('chum-owned').innerText = `[${chumCount}]`;
+            const pigeonOwned = document.getElementById('pigeon-owned');
+            if (pigeonOwned) pigeonOwned.innerText = `[${pigeonCount}]`;
             document.getElementById('john-owned').innerText = `[${johnCount}]`;
 
-            document.getElementById('x2-text').innerHTML = `x2 Boost (60s)<br>Cost: ${freeShopEnabled ? 0 : 500}`;
-            document.getElementById('x5-text').innerHTML = `x5 Boost (30s)<br>Cost: ${freeShopEnabled ? 0 : 5000}`;
-            document.getElementById('buy-x2-btn').disabled = count < (freeShopEnabled ? 0 : 500) || currentMultiplier > 1;
-            document.getElementById('buy-x5-btn').disabled = count < (freeShopEnabled ? 0 : 5000) || currentMultiplier > 1;
+            x2Cost = freeShopEnabled ? 0 : Math.ceil(500 * Math.pow(1.5, x2Bought));
+            x5Cost = freeShopEnabled ? 0 : Math.ceil(5000 * Math.pow(1.75, x5Bought));
+
+            document.getElementById('x2-text').innerHTML = `x2 Boost (60s)<br/>Cost: ${formatNumberWords(x2Cost)}`;
+            document.getElementById('x5-text').innerHTML = `x5 Boost (30s)<br/>Cost: ${formatNumberWords(x5Cost)}`;
+            document.getElementById('buy-x2-btn').disabled = count < x2Cost || currentMultiplier > 1;
+            document.getElementById('buy-x5-btn').disabled = count < x5Cost || currentMultiplier > 1;
         }
     }
 
@@ -392,6 +463,13 @@ if (shopMode === 'buy') {
             scrollColor: '#27ae60',
             scrollHover: '#2ecc71',
             scrollTrack: 'rgba(39, 174, 96, 0.2)'
+        },
+        'pigeon': {
+            bg: 'bg/bg_pigeon.png',
+            icon: 'ent/pigeon.png',
+            scrollColor: '#2980b9',
+            scrollHover: '#3498db',
+            scrollTrack: 'rgba(41, 128, 185, 0.2)'
         }
     };
 
@@ -455,7 +533,7 @@ if (shopMode === 'buy') {
         });
 
         canvas.addEventListener('mouseup', (e) => {
-            if (Math.abs(e.clientX - clickStartX) < 5 && rowData.mouseY <= 108 && (id === 'chron' || id === 'chum')) {
+            if (Math.abs(e.clientX - clickStartX) < 5 && rowData.mouseY <= 108 && (id === 'chron' || id === 'chum' || id === 'pigeon')) {
                 let hoveredIdx = -1;
                 for (let k = rowData.renderOrder.length - 1; k >= 0; k--) {
                     let i = rowData.renderOrder[k].index;
@@ -503,7 +581,7 @@ if (shopMode === 'buy') {
     function updateArmyVisibility() {
         const msg = document.getElementById('no-soldiers-msg');
         if (!msg) return;
-        if (johnCount === 0 && chronCount === 0 && chumCount === 0) {
+        if (johnCount === 0 && chronCount === 0 && chumCount === 0 && pigeonCount === 0) {
             msg.style.display = 'flex';
         } else { msg.style.display = 'none'; }
     }
@@ -553,8 +631,12 @@ if (shopMode === 'buy') {
             baseCost = 50; prodMult = 1; titleName = "Chronister";
         } else if (type === 'chum') {
             lvl = chumLevels[index] || 1;
-            maxLvl = MAX_LEVELS['chum'];
-            baseCost = 500; prodMult = 5; titleName = "Chumtoad";
+            maxLvl = characters.chum.maxLvl;
+            baseCost = 500; prodMult = characters.chum.baseTPS; titleName = "Chumtoad";
+        } else if (type === 'pigeon') {
+            lvl = pigeonLevels[index] || 1;
+            maxLvl = characters.pigeon.maxLvl;
+            baseCost = 1500; prodMult = characters.pigeon.baseTPS; titleName = "Mr Pigeon";
         }
 
         const isMax = lvl >= maxLvl;
@@ -568,8 +650,8 @@ if (shopMode === 'buy') {
         const prodEl = document.getElementById('upg-prod-text');
         const btn = document.getElementById('confirm-upgrade-btn');
 
-        let currentImg = type === 'chron' ? `ent/chron_${lvl}.png` : `ent/chum_${lvl}.png`;
-        let nextImg = type === 'chron' ? `ent/chron_${nextLvl}.png` : `ent/chum_${nextLvl}.png`;
+        let currentImg = `ent/${type}_${lvl}.png`;
+        let nextImg = `ent/${type}_${nextLvl}.png`;
 
         titleEl.innerText = isMax ? `Max Level Reached!` : titleName;
         imgEl.src = currentImg;
@@ -606,11 +688,13 @@ btn.innerText = `Upgrade (Cost: ${formatNumberWords(upgradeCost)})`;            
                     
                     if (type === 'chron') chronLevels[index]++;
                     if (type === 'chum') chumLevels[index]++;
+                    if (type === 'pigeon') pigeonLevels[index]++;
                     
                     saveGame();
                     updateDisplay(true);
                     
-                    syncArmyCount(type, type === 'chron' ? chronCount : chumCount); 
+                    let targetCount = type === 'chron' ? chronCount : (type === 'chum' ? chumCount : pigeonCount);
+                    syncArmyCount(type, targetCount);
                     
                     btn.onmouseleave(); 
                     openUpgradeModal(type, index); 
@@ -654,7 +738,7 @@ btn.innerText = `Upgrade (Cost: ${formatNumberWords(upgradeCost)})`;            
             if (!document.body.classList.contains('is-dragging')) {
                 if (row.mouseY > 108 && maxScroll > 0) { 
                     row.canvas.style.cursor = 'grab';
-                } else if (hoveredIdx !== -1 && (id === 'chron' || id === 'chum')) {
+                } else if (hoveredIdx !== -1 && (id === 'chron' || id === 'chum' || id === 'pigeon')) {
                     row.canvas.style.cursor = 'pointer';
                 } else {
                     row.canvas.style.cursor = 'default';
@@ -685,6 +769,9 @@ btn.innerText = `Upgrade (Cost: ${formatNumberWords(upgradeCost)})`;            
                 } else if (id === 'chum') {
                     currentLvl = chumLevels[i] || 1;
                     imgToDraw = getChumImg(currentLvl);
+                } else if (id === 'pigeon') {
+                    currentLvl = pigeonLevels[i] || 1;
+                    imgToDraw = getPigeonImg(currentLvl);
                 }
                 
                 if (drawX > -60 && drawX < cW + 60 && imgToDraw.complete && imgToDraw.naturalWidth !== 0) {
@@ -697,7 +784,7 @@ btn.innerText = `Upgrade (Cost: ${formatNumberWords(upgradeCost)})`;            
                         ctx.shadowOffsetY = isHovered ? 8 : 4;
                         ctx.drawImage(imgToDraw, drawX + offset, finalY, size, size);
                         
-                        if ((id === 'chron' || id === 'chum') && currentLvl >= 1) {
+                        if ((id === 'chron' || id === 'chum' || id === 'pigeon') && currentLvl >= 1) {
                             ctx.shadowBlur = 2;
                             ctx.shadowOffsetY = 2;
                             ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
@@ -746,6 +833,9 @@ btn.innerText = `Upgrade (Cost: ${formatNumberWords(upgradeCost)})`;            
         if (count >= cost && currentMultiplier === 1) {
             count -= cost;
             currentMultiplier = mult;
+            if (mult === 2) x2Bought++;
+            if (mult === 5) x5Bought++;
+            saveGame();
             updateDisplay(true);
             const iconSrc = mult === 2 ? 'icon/x2_icon.png' : 'icon/x5_icon.png';
             if (activeBooster && activeBooster.el) activeBooster.el.remove();
@@ -802,7 +892,7 @@ btn.innerText = `Upgrade (Cost: ${formatNumberWords(upgradeCost)})`;            
         
         openModal('tutorial-panel');
         
-        const entName = type === 'chron' ? 'Chronister' : 'Chumtoad';
+        const entName = characters[type] ? characters[type].name : 'Soldier';
         document.getElementById('tut-desc-text').innerHTML = `You have bought a ${entName}, which supports <b>Levels</b>! You can upgrade your soldiers stats based on its level!<br><br>Upgrade in the <b>[Armies]</b> tab!`;
         
         const maxLvl = MAX_LEVELS[type];
@@ -876,6 +966,29 @@ spawnTextPopup(px, py, `+${formatNumberWords(refund)}`, '#4cff4c');
         }
     }
 
+    function buyPigeon() {
+        let px = window.innerWidth / 2 + (Math.random() - 0.5) * 150;
+        let py = window.innerHeight / 2 - 100 + (Math.random() - 0.5) * 100;
+
+        if (shopMode === 'buy') {
+            if (count >= pigeonCost) {
+                count -= pigeonCost;
+                pigeonCount++;
+                pigeonLevels.push(1);
+                if (pigeonCount === 1) triggerLevelTutorial('pigeon');
+                if (!freeShopEnabled) spawnTextPopup(px, py, `-${formatNumberWords(pigeonCost)}`, '#ff4c4c');
+                saveGame(); updateDisplay(true); syncArmyCount('pigeon', pigeonCount); checkAchievements();
+            }
+        } else if (shopMode === 'sell' && pigeonCount > 0) {
+            let refund = Math.floor(Math.ceil(characters.pigeon.baseCost * Math.pow(characters.pigeon.costMult, pigeonCount - 1)) * 0.5);
+            count += refund;
+            pigeonCount--;
+            pigeonLevels.pop();
+            spawnTextPopup(px, py, `+${formatNumberWords(refund)}`, '#4cff4c');
+            saveGame(); updateDisplay(true); syncArmyCount('pigeon', pigeonCount);
+        }
+    }
+
     function buyJohn() {
         let px = window.innerWidth / 2 + (Math.random() - 0.5) * 150;
         let py = window.innerHeight / 2 - 100 + (Math.random() - 0.5) * 100;
@@ -902,6 +1015,8 @@ spawnTextPopup(px, py, `+${formatNumberWords(refund)}`, '#4cff4c');
 
     document.getElementById('buy-chron-btn').addEventListener('click', buyChron);
     document.getElementById('buy-chum-btn').addEventListener('click', buyChum);
+    const buyPigeonBtnEl = document.getElementById('buy-pigeon-btn');
+    if (buyPigeonBtnEl) buyPigeonBtnEl.addEventListener('click', buyPigeon);
     document.getElementById('buy-john-btn').addEventListener('click', buyJohn);
 
     function bumpText() {
@@ -1169,6 +1284,7 @@ const realNowTime = Date.now();
             const lineVisible = (cMaxX >= worldLeft && cMinX <= worldRight && cMaxY >= worldTop && cMinY <= worldBottom);
             const imgVisible = checkCull(x, y, CHRON_SIZE, CHRON_SIZE, angle, 0.85, 0.85, worldLeft, worldRight, worldTop, worldBottom);
 
+            if (window.perfHideArmy) continue;
             if (lineVisible || imgVisible) {
                 window.currentFrameEntities++;
                 let chronLvl = chronLevels[i] || 1;
@@ -1291,6 +1407,7 @@ if (showLodText) {
             finalCenterX += Math.sin(angle) * (CHUM_SIZE / 2);
             finalCenterY -= Math.cos(angle) * (CHUM_SIZE / 2);
 
+            if (window.perfHideArmy) continue;
             const isChumVisible = checkCull(finalCenterX, finalCenterY, CHUM_SIZE, CHUM_SIZE, finalAngle, 0.85 * scaleModX, 0.85 * scaleModY, worldLeft, worldRight, worldTop, worldBottom);
             if (isChumVisible) {
                 window.currentFrameEntities++;
@@ -1324,7 +1441,114 @@ if (showLodText) {
             }
         }
         
-if (chumCount > 0) nextStartRadius = currentChumRadius + (chumsPlacedInRing > 0 ? 160 : 70);
+        if (chumCount > 0) nextStartRadius = currentChumRadius + (chumsPlacedInRing > 0 ? 210 : 140);
+
+        const PIGEON_SIZE = 80;
+        const PIGEON_SPACING = 85;
+        let currentPigeonRadius = nextStartRadius;
+        let pigeonCapacity = Math.max(1, Math.floor((2 * Math.PI * currentPigeonRadius) / PIGEON_SPACING));
+        let pigeonsPlacedInRing = 0;
+        let pigeonRingIndex = 0;
+
+        let pigeonRingDelay = 16;
+        let pigeonSnappedOrbit = 0;
+        let pigeonSnappedBob = 0;
+
+        bgCtx.strokeStyle = 'rgba(52, 152, 219, 0.45)';
+
+        for (let i = 0; i < pigeonCount; i++) {
+            if (pigeonsPlacedInRing === 0) {
+                let zPenalty = Math.max(0, (1 - smoothZoom) * 15);
+                let radiusPenalty = Math.max(0, (currentPigeonRadius - 350) * 0.02);
+                pigeonRingDelay = Math.max(16, Math.min(250, 16 + zPenalty + radiusPenalty + renderCountPenalty));
+
+                let orbitCycle = gameTime % 24000;
+                pigeonSnappedOrbit = orbitCycle - (orbitCycle % pigeonRingDelay);
+
+                let bobCycle = gameTime % 1570;
+                pigeonSnappedBob = bobCycle - (bobCycle % pigeonRingDelay);
+
+                if (showLodText) {
+                    const textX = centerX + Math.cos(pointerAngle) * currentPigeonRadius;
+                    const textY = centerY + Math.sin(pointerAngle) * currentPigeonRadius;
+                    if (textX > worldLeft - 60 && textX < worldRight + 60 && textY > worldTop - 60 && textY < worldBottom + 60) {
+                        lodTextsToDraw.push({ x: textX, y: textY, text: pigeonRingDelay.toFixed(1) + "ms" });
+                    }
+                }
+            }
+
+            const baseAngle = (pigeonsPlacedInRing / pigeonCapacity) * (Math.PI * 2);
+            let angle = baseAngle + ((pigeonSnappedOrbit / 24000) * Math.PI * 2);
+
+            let bobPhase = (pigeonSnappedBob / 250) + (baseAngle * 4);
+            let slideOffset = Math.sin(bobPhase) * 18;
+            let effRadius = currentPigeonRadius + slideOffset;
+
+            let bobVel = Math.cos(bobPhase);
+            let stretchAmt = Math.abs(bobVel) * 0.06;
+            let pScaleY = 0.85 * (1 + stretchAmt);
+            let pScaleX = 0.85 * (1 - stretchAmt * 0.45);
+
+            const px = centerX + Math.sin(angle) * effRadius;
+            const py = centerY - Math.cos(angle) * effRadius;
+            pigeonsPlacedInRing++;
+
+            if (window.perfHideArmy || window.perfHidePigeons) continue;
+
+            const isPigeonVisible = checkCull(px, py, PIGEON_SIZE, PIGEON_SIZE, angle, pScaleX, pScaleY, worldLeft, worldRight, worldTop, worldBottom);
+
+            if (isPigeonVisible) {
+                window.currentFrameEntities++;
+
+                if (smoothZoom > 0.35 && !window.perfHideBeams) {
+                    bgCtx.lineWidth = 2.5 / Math.max(1, smoothZoom);
+                    bgCtx.beginPath();
+                    bgCtx.moveTo(px, py);
+                    bgCtx.lineTo(centerX, centerY);
+                    bgCtx.stroke();
+                }
+
+                bgCtx.save();
+                bgCtx.translate(px, py);
+                bgCtx.rotate(angle);
+                bgCtx.scale(pScaleX, pScaleY);
+
+                let pLvl = pigeonLevels[i] || 1;
+                let drawImg = getPigeonImg(pLvl);
+                if (drawImg.complete && drawImg.naturalWidth !== 0) {
+                    bgCtx.drawImage(drawImg, -(PIGEON_SIZE / 2), -(PIGEON_SIZE / 2), PIGEON_SIZE, PIGEON_SIZE);
+                }
+                bgCtx.restore();
+            }
+
+            if (showEntityAABB && (isPigeonVisible || showGlobalAABB)) {
+                const cosA = Math.abs(Math.cos(angle)), sinA = Math.abs(Math.sin(angle));
+                const hw = (PIGEON_SIZE / 2) * pScaleX, hh = (PIGEON_SIZE / 2) * pScaleY;
+                const ex = hw * cosA + hh * sinA, ey = hw * sinA + hh * cosA;
+                bgCtx.save();
+                bgCtx.globalAlpha = isPigeonVisible ? 1 : 0.2;
+                bgCtx.strokeStyle = '#3498db';
+                bgCtx.lineWidth = 2 / smoothZoom;
+                bgCtx.strokeRect(px - ex, py - ey, ex * 2, ey * 2);
+                bgCtx.restore();
+            }
+
+            if (pigeonsPlacedInRing >= pigeonCapacity) {
+                if (pigeonRingIndex === 0 && !unlockedAchievements.includes('ach_pigeon_rev')) {
+                    unlockedAchievements.push('ach_pigeon_rev');
+                    showToast("Achievement Unlocked!", "<b>Lord of the 7 Seas</b> - Complete the first circle of Mr Pigeons.");
+                    renderAchievements();
+                    saveGame();
+                }
+
+                currentPigeonRadius += 85;
+                pigeonCapacity = Math.max(1, Math.floor((2 * Math.PI * currentPigeonRadius) / PIGEON_SPACING));
+                pigeonsPlacedInRing = 0;
+                pigeonRingIndex++;
+            }
+        }
+
+        if (pigeonCount > 0) nextStartRadius = currentPigeonRadius + (pigeonsPlacedInRing > 0 ? 160 : 90);
 
         let currentJohnRadius = nextStartRadius; 
         let johnCapacity = Math.max(1, Math.floor((2 * Math.PI * currentJohnRadius) / JOHN_SPACING)); 
@@ -1363,6 +1587,8 @@ if (chumCount > 0) nextStartRadius = currentChumRadius + (chumsPlacedInRing > 0 
             const y = centerY - Math.cos(angle) * currentJohnRadius;
             
             johnsPlacedInRing++; 
+
+            if (window.perfHideArmy) continue;
 
             const waveDir = (ringIndex % 2 === 0) ? 1 : -1;
             const scale = 0.55 + (0.12 * Math.sin((johnSnappedWave / 300) * 2 + baseAngle * 5 * waveDir + ringIndex * Math.PI));
@@ -1578,6 +1804,12 @@ targetCtx.save(); targetCtx.globalAlpha = Math.max(0, p.opacity);
 
         localStorage.setItem('sq_chum', chumCount);
         localStorage.setItem('sq_chum_lvls', JSON.stringify(chumLevels));
+
+        localStorage.setItem('sq_pigeon', pigeonCount);
+        localStorage.setItem('sq_pigeon_lvls', JSON.stringify(pigeonLevels));
+
+        localStorage.setItem('sq_x2_bought', x2Bought);
+        localStorage.setItem('sq_x5_bought', x5Bought);
         
         localStorage.setItem('sq_chron_lvls', JSON.stringify(chronLevels));
         localStorage.setItem('sq_seen_level_tut', hasSeenLevelTut);
@@ -1597,6 +1829,14 @@ targetCtx.save(); targetCtx.globalAlpha = Math.max(0, p.opacity);
         try { chumLevels = JSON.parse(localStorage.getItem('sq_chum_lvls')) || []; } catch(e) { chumLevels = []; }
         while(chumLevels.length < chumCount) chumLevels.push(1);
         while(chumLevels.length > chumCount) chumLevels.pop();
+
+        pigeonCount = getNum('sq_pigeon', 0);
+        try { pigeonLevels = JSON.parse(localStorage.getItem('sq_pigeon_lvls')) || []; } catch(e) { pigeonLevels = []; }
+        while(pigeonLevels.length < pigeonCount) pigeonLevels.push(1);
+        while(pigeonLevels.length > pigeonCount) pigeonLevels.pop();
+
+        x2Bought = getNum('sq_x2_bought', 0);
+        x5Bought = getNum('sq_x5_bought', 0);
 
         cursorSize = parseInt(localStorage.getItem('sq_cur_size')) || 32;
         document.getElementById('cursor-size').value = cursorSize;
@@ -1845,8 +2085,8 @@ const earned = 1 * currentMultiplier * frenzyMultiplier * getPrestigeMultiplier(
 
     clickerImage.addEventListener('mousedown', handleSquirrelClick);
     clickerImage.addEventListener('touchstart', handleSquirrelClick, { passive: false });
-    document.getElementById('buy-x2-btn').addEventListener('click', () => activateBooster(2, freeShopEnabled ? 0 : 500, 60000));
-    document.getElementById('buy-x5-btn').addEventListener('click', () => activateBooster(5, freeShopEnabled ? 0 : 5000, 30000));
+    document.getElementById('buy-x2-btn').addEventListener('click', () => activateBooster(2, x2Cost, 60000));
+    document.getElementById('buy-x5-btn').addEventListener('click', () => activateBooster(5, x5Cost, 30000));
     
     let lastTime = Date.now();
     setInterval(() => {
@@ -1873,6 +2113,8 @@ const earned = 1 * currentMultiplier * frenzyMultiplier * getPrestigeMultiplier(
         if (confirm(`Are you sure you want to Ascend?\n\nYou will reset your current tokens and helpers, but gain ${pendingAcorns} Golden Acorns!\nEach acorn gives a permanent +5% boost to ALL production.`)) {
             goldenAcorns += pendingAcorns; unspentAcorns += pendingAcorns;
             count = 0; johnCount = 0; chronCount = 0;
+            pigeonCount = 0; pigeonLevels = [];
+            x2Bought = 0; x5Bought = 0;
             buildingOrder = []; 
             chronLevels = [];
             chumCount = 0; chumLevels = [];
@@ -1953,6 +2195,7 @@ let gameStarted = false;
             if (id === 'john' && johnCount > 0) syncArmyCount('john', johnCount);
             if (id === 'chron' && chronCount > 0) syncArmyCount('chron', chronCount);
             if (id === 'chum' && chumCount > 0) syncArmyCount('chum', chumCount);
+            if (id === 'pigeon' && pigeonCount > 0) syncArmyCount('pigeon', pigeonCount);
         });
 
         useCustomCursor = document.getElementById('use-custom-cursor').checked;
@@ -2103,6 +2346,7 @@ const assetsToPreload = [
         'ent/john.png', 'bg/bg_john.png',
         'ent/chron.png', 'ent/chron_1.png', 'ent/chron_2.png', 'ent/chron_3.png', 'bg/bg_chron.png',
         'ent/chum_1.png', 'ent/chum_2.png', 'ent/chum_3.png', 'bg/bg_chum.png',
+        'ent/pigeon.png', 'ent/pigeon_1.png', 'ent/pigeon_2.png', 'ent/pigeon_3.png', 'bg/bg_pigeon.png',
         'icon/troph_icon.png', 'icon/sett_icon.png', 'icon/x2_icon.png', 'icon/x5_icon.png',
         ...achievementsList.filter(ach => ach.icon).map(ach => `icon/achieve/${ach.icon}`),
         
